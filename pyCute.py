@@ -1,0 +1,322 @@
+# coding: utf8
+
+import os
+import ctypes
+import scipy
+from scipy import constants
+from numpy import ctypeslib
+
+def wrap_phi(phi):
+	mask = phi<0.
+	phi[mask] = 2*constants.pi+phi[mask]
+	return phi
+
+def celestial_to_spherical(pos):
+	ra,dec = pos.T
+	theta = (90.-dec)*constants.degree
+	phi = ra*constants.degree
+	phi = wrap_phi(phi)
+	return scipy.asarray([theta,phi]).T
+
+class PyCute(object):
+
+	C_TYPE = ctypes.c_double
+	PATH_CUTE = os.path.join(os.path.dirname(os.path.realpath(__file__)),'lib','cute.so')
+
+	def __init__(self):
+
+		self.cute = ctypes.CDLL(self.PATH_CUTE,mode=ctypes.RTLD_GLOBAL)
+		self.free()
+
+	def set_bin(self,num,edges,size=None,binning='lin'):
+
+		if binning == 'lin':
+			if size is None: size = len(edges)-1
+			edges = scipy.linspace(edges[0],edges[-1],size+1,dtype=self.C_TYPE)
+		elif binning == 'log':
+			if size is None: size = len(edges)-1
+			edges = scipy.logspace(scipy.log10(edges[0]),scipy.log10(edges[-1]),size+1,base=10,dtype=self.C_TYPE)
+		else:
+			edges = scipy.asarray(edges,dtype=self.C_TYPE)
+			binning = 'custom'
+	
+		self.cute.set_bin.argtypes = (ctypes.c_size_t,ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(size+1,)),ctypes.c_size_t,ctypes.c_char_p)
+		self.cute.set_bin(num,edges,size,binning)
+	
+		return edges
+		
+	def set_ells(self,ells=[0,2,4,6,8,10,12]):
+		self.nells = len(ells)
+		if (scipy.mod(ells,2)==0).all():
+			self.ells = scipy.arange(self.nells)*2
+			self.multitype = 'even'
+		elif (scipy.mod(ells,2)==1).all():
+			self.ells = 1+scipy.arange(self.nells)*2
+			self.multitype = 'odd'
+		else:
+			self.ells = scipy.arange(self.nells)
+			self.multitype = 'all'
+
+	def set_2pcf_smu(self,sedges,muedges,position1,weight1,position2=None,weight2=None,nthreads=8,sbinning='lin',mubinning='lin',ssize=None,musize=None):
+
+		self.sedges = self.set_bin(0,sedges,size=ssize,binning=sbinning)
+		self.muedges = self.set_bin(1,muedges,size=musize,binning=mubinning)
+		cross = self.set_catalogues([position1,position2],[weight1,weight2])
+		
+		self.run_2pcf_smu(cross=cross,nthreads=nthreads)
+		self.free()
+	
+	def run_2pcf_smu(self,cross=[1,2],nthreads=8):
+	
+		shape = (len(self.sedges)-1,len(self.muedges)-1)
+	
+		self.s = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		self.mu = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		self.counts = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.counts)))
+	
+		self.cute.run_2pcf_main_aux.argtypes = (ctypes.c_size_t,ctypes.c_size_t,typecounts,typecounts,typecounts,ctypes.c_char_p,ctypes.c_size_t)
+		self.cute.run_2pcf_main_aux(cross[0],cross[1],self.s,self.mu,self.counts,'s-mu',nthreads)
+		self.s.shape = shape
+		self.mu.shape = shape
+		self.counts.shape = shape
+	
+	def set_2pcf_s(self,sedges,position1,weight1,position2=None,weight2=None,nthreads=8,sbinning='lin',ssize=None):
+
+		self.sedges = self.set_bin(0,sedges,size=ssize,binning=sbinning)
+		cross = self.set_catalogues([position1,position2],[weight1,weight2])
+		
+		self.run_2pcf_s(cross=cross,nthreads=nthreads)
+		self.free()
+	
+	def run_2pcf_s(self,cross=[1,2],nthreads=8):
+	
+		shape = (len(self.sedges)-1)
+	
+		self.s = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		self.counts = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.counts)))
+	
+		self.cute.run_2pcf_main.argtypes = (ctypes.c_size_t,ctypes.c_size_t,typecounts,typecounts,ctypes.c_char_p,ctypes.c_size_t)
+		self.cute.run_2pcf_main(cross[0],cross[1],self.s,self.counts,'s-mu',nthreads)
+		self.s.shape = shape
+		self.counts.shape = shape
+
+	def set_2pcf_angular(self,thetaedges,position1,weight1,position2=None,weight2=None,nthreads=8,thetabinning='lin',thetasize=None,celestial=True):
+
+		#theta edges in radians
+		toradians = constants.degree if celestial else 1.
+
+		if celestial:
+			position1 = celestial_to_spherical(position1)
+			if position2 is not None: position2 = celestial_to_spherical(position2)
+		else:
+			position1[:,1] = wrap_phi(position1[:,1])
+			if position2 is not None: position2[:,1] = wrap_phi(position2[:,1])
+		
+		self.thetaedges = self.set_bin(0,thetaedges*toradians,size=thetasize,binning=thetabinning)/toradians
+		cross = self.set_catalogues([position1,position2],[weight1,weight2])
+	
+		self.run_2pcf_angular(cross=cross,nthreads=nthreads,degree=True)
+		self.free()
+	
+	def run_2pcf_angular(self,cross=[1,2],nthreads=8,degree=True):
+		
+		shape = (len(self.thetaedges)-1)
+	
+		self.theta = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		self.counts = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.counts)))
+	
+		self.cute.run_2pcf_main.argtypes = (ctypes.c_size_t,ctypes.c_size_t,typecounts,typecounts,ctypes.c_char_p,ctypes.c_size_t)
+		self.cute.run_2pcf_main(cross[0],cross[1],self.theta,self.counts,'angular',nthreads)
+		self.theta.shape = shape
+		if degree: self.theta /= constants.degree
+		self.counts.shape = shape
+	
+		
+	def set_2pcf_multi(self,sedges,position1,weight1,position2=None,weight2=None,nthreads=8,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.]):
+
+		self.sedges = self.set_bin(0,sedges,size=ssize,binning=sbinning)
+		self.muedges = self.set_bin(1,muedges,size=1)
+		self.set_ells(ells=ells)
+		cross = self.set_catalogues([position1,position2],[weight1,weight2])
+		
+		self.run_2pcf_multi(cross,nthreads)
+		self.free()
+	
+	def run_2pcf_multi(self,cross=[1,2],nthreads=8):
+	
+		shape = (len(self.sedges)-1,self.nells)
+	
+		self.s = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		self.counts = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.counts)))
+	
+		self.cute.run_2pcf_multi.argtypes = (ctypes.c_size_t,ctypes.c_size_t,typecounts,typecounts,ctypes.c_size_t,ctypes.c_char_p,ctypes.c_size_t)
+		self.cute.run_2pcf_multi(cross[0],cross[1],self.s,self.counts,self.nells,self.multitype,nthreads)
+		self.s.shape = shape
+		self.counts.shape = shape
+		
+	def set_2pcf_scos(self,sedges,muedges,position1,weight1,position2=None,weight2=None,nthreads=8,sbinning='lin',mubinning='lin',ssize=None,musize=None):
+
+		self.sedges = self.set_bin(0,sedges,size=ssize,binning=sbinning)
+		self.muedges = self.set_bin(1,muedges,size=musize,binning=mubinning)
+		cross = self.set_catalogues([position1,position2],[weight1,weight2])
+		
+		self.run_2pcf_scos(cross=cross,nthreads=nthreads)
+		self.free()
+	
+	def run_2pcf_scos(self,cross=[1,2],nthreads=8):
+	
+		shape = (len(self.sedges)-1,len(self.muedges)-1)
+	
+		self.s = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		self.mu = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		self.counts = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.counts)))
+	
+		self.cute.run_2pcf_main_aux.argtypes = (ctypes.c_size_t,ctypes.c_size_t,typecounts,typecounts,typecounts,ctypes.c_char_p,ctypes.c_size_t)
+		self.cute.run_2pcf_main_aux(cross[0],cross[1],self.s,self.mu,self.counts,'s-cos',nthreads)
+		self.s.shape = shape
+		self.mu.shape = shape
+		self.counts.shape = shape
+			
+	def set_3pcf_multi(self,sedges,position1,weight1,position2,weight2,position3=None,weight3=None,nthreads=8,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.]):
+
+		self.sedges = self.set_bin(0,sedges,size=ssize,binning=sbinning)
+		self.muedges = self.set_bin(1,muedges,size=1)
+		self.set_ells(ells=ells)
+		
+		self.set_catalogues([position1,position2,position3],[weight1,weight2,weight3])
+		self.run_3pcf_multi(nthreads)
+		self.free()
+	
+	def run_3pcf_multi(self,nthreads=8):
+	
+		#shape = (self.nells,self.nells,len(self.sedges)-1,len(self.sedges)-1)
+		shape = (len(self.sedges)-1,len(self.sedges)-1,self.nells,self.nells)
+	
+		self.counts = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.counts)))
+	
+		self.cute.run_3pcf_multi.argtypes = (typecounts,ctypes.c_size_t,ctypes.c_char_p,ctypes.c_size_t)
+		self.cute.run_3pcf_multi(self.counts,self.nells,self.multitype,nthreads)
+		self.counts.shape = shape
+		
+	def set_3pcf_multi_radial(self,sedges,sparedges,position1,weight1,position2,weight2,position3=None,weight3=None,nthreads=8,sbinning='lin',ssize=None,sparbinning='lin',sparsize=None,ells=[0,2,4,6,8,10,12]):
+
+		self.sedges = self.set_bin(0,sedges,size=ssize,binning=sbinning)
+		self.sparedges = self.set_bin(1,sparedges,size=sparsize,binning=sparbinning)
+		self.set_ells(ells=ells)
+		
+		self.set_catalogues([position1,position2,position3],[weight1,weight2,weight3])
+		self.run_3pcf_multi_radial(nthreads)
+		self.free()
+	
+	def run_3pcf_multi_radial(self,nthreads=8):
+	
+		#shape = (self.nells,self.nells,len(self.sedges)-1,len(self.sedges)-1)
+		shape = (len(self.sedges)-1,len(self.sedges)-1,self.nells,self.nells)
+	
+		self.counts = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.counts)))
+	
+		self.cute.run_3pcf_multi_radial.argtypes = (typecounts,ctypes.c_size_t,ctypes.c_char_p,ctypes.c_size_t)
+		self.cute.run_3pcf_multi_radial(self.counts,self.nells,self.multitype,nthreads)
+		self.counts.shape = shape
+		
+	def set_2pcf_multi_radial(self,sedges,sparedges,position1,weight1,position2,weight2,nthreads=8,sbinning='lin',ssize=None,sparbinning='lin',sparsize=None,ells=[0,2,4,6,8,10,12]):
+
+		self.sedges = self.set_bin(0,sedges,size=ssize,binning=sbinning)
+		self.sparedges = self.set_bin(1,sparedges,size=sparsize,binning=sparbinning)
+		self.set_ells(ells=ells)
+		
+		self.set_catalogues([position1,position2],[weight1,weight2])
+		self.run_2pcf_multi_radial(nthreads)
+		self.free()
+	
+	def run_2pcf_multi_radial(self,nthreads=8):
+	
+		shape = (len(self.sedges)-1,len(self.sparedges)-1,self.nells)
+	
+		self.counts = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.counts)))
+	
+		self.cute.run_2pcf_multi_radial.argtypes = (typecounts,ctypes.c_size_t,ctypes.c_char_p,ctypes.c_size_t)
+		self.cute.run_2pcf_multi_radial(self.counts,self.nells,self.multitype,nthreads)
+		self.counts.shape = shape
+		
+	def set_4pcf_multi_radial(self,sedges,sparedges,position1,weight1,position2,weight2,position3,weight3,position4,weight4,nthreads=8,sbinning='lin',ssize=None,sparbinning='lin',sparsize=None,ells=[0,2,4,6,8,10,12]):
+
+		self.sedges = self.set_bin(0,sedges,size=ssize,binning=sbinning)
+		self.sparedges = self.set_bin(1,sparedges,size=sparsize,binning=sparbinning)
+		self.set_ells(ells=ells)
+		
+		self.set_catalogues([position1,position2,position3,position4],[weight1,weight2,weight3,weight4])
+		self.run_4pcf_multi_radial(nthreads)
+		self.free()
+	
+	def run_4pcf_multi_radial(self,nthreads=8):
+	
+		shape = (len(self.sedges)-1,len(self.sedges)-1,self.nells,self.nells)
+	
+		self.counts = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.counts)))
+	
+		self.cute.run_4pcf_multi_radial.argtypes = (typecounts,ctypes.c_size_t,ctypes.c_char_p,ctypes.c_size_t)
+		self.cute.run_4pcf_multi_radial(self.counts,self.nells,self.multitype,nthreads)
+		self.counts.shape = shape
+	
+	def set_catalogues(self,positions,weights):
+		
+		def size(tab):
+			return tab.shape[-1] if len(tab.shape) > 1 else 1
+		
+		sizeposition = size(positions[0])
+		sizeweight = size(weights[0]) if weights[0] is not None else 1
+		
+		cross = [1]*len(positions)
+		for num,(position,weight) in enumerate(zip(positions,weights)):
+			if position is not None:
+				cross[num] = num+1
+				if size(position) != sizeposition: raise ValueError
+				if weight is None:
+					weight = scipy.ones((position.shape[0],sizeweight),dtype=position.dtype)
+				else:
+					assert size(weight) == sizeweight
+				self.set_catalogue(num+1,position,weight)
+				 
+		return cross
+		
+	def set_catalogue(self,num,position,weight,copy=False):
+	
+		#First dimension is number of objects
+		n = position.shape[0]
+		
+		def size(tab):
+			return tab.shape[-1] if len(tab.shape) > 1 else 1
+		
+		sizeposition = size(position)
+		sizeweight = size(weight)
+		
+		def new(tab):
+			if copy: return scipy.asarray(tab,dtype=self.C_TYPE).flatten()
+			return tab.astype(self.C_TYPE).flatten()
+		
+		self.position[num] = new(position)
+		self.weight[num] = new(weight)
+
+		typeposition = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(n*sizeposition))
+		typeweight = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(n*sizeweight))
+		
+		self.cute.set_catalog_from_hist.argtypes = (ctypes.c_size_t,typeposition,typeweight,ctypes.c_size_t,ctypes.c_size_t,ctypes.c_size_t)
+		self.cute.set_catalog_from_hist(num,self.position[num],self.weight[num],n,sizeposition,sizeweight)
+		
+		self.position[num].shape = (n,sizeposition)
+		self.weight[num].shape = (n,sizeweight)
+
+	def free(self):
+		self.position = {}
+		self.weight = {}
+

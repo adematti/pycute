@@ -1,0 +1,121 @@
+pyCUTE - Pythonic wrapper for Correlation Utilities and Two-point Estimates
+
+1 Introduction.
+
+pyCUTE is a pythonic wrapper for CUTE-inspired C code provided in lib/.
+The CUTE version has suffered numerous changes to make it more flexible.
+DISCLAMER: Though numerous tests have been performed, some bugs/mistakes 
+may still remain.
+First we will discuss how to call CUTE C functions. Examples are given in
+the class PyCute (see pyCute.py). 
+
+
+2 Dependencies.
+
+Two things are necessary to compile and run CUTE: the gcc C compiler and the
+GSL libraries. Although CUTE is parallelized for shared memory machines with
+OpenMP, systems lacking this will be able to run in sequential mode anyway.
+
+Once the input files are provided and the compile-time options set,
+compilation should be straightforward by just typing
+
+  $ make CUTE
+
+This will generate the CUTE libraires.
+
+
+3 How to call C functions?
+
+You will make use of the following Python packages:
+import ctypes
+from numpy.ctypeslib import ndpointer
+
+For each C function you want to call, you need to give its arguments, following the syntax:
+c_function.argtypes = (ctype_1,ctype_2,ctype_3,...)
+and its return type (if not void), following the syntax:
+c_function.restype = ctype_1
+The correspondance ctypes <-> C <-> Python is given on the page https://docs.python.org/3/library/ctypes.html (16.16.1.4.).
+
+
+4 Compile-time options.
+
+The following options can be defined in the Makefile:
+- DEFINEOPTIONS += -D_VERBOSE: Verbosity option
+- DEFINEOPTIONS += -D_DEBUG: Debugging option
+- DEFINEOPTIONS += -D_FLOAT32: set histo_t to float (default: double)
+
+
+5 Available C functions.
+
+The available C functions are written in lib/cute.c, namely:
+
+- void set_bin(int num,histo_t* edges,int n_bin,char* type): sets binning for dimension num
+	- num is the dimension number, e.g. 0 for r, 1 for aux
+	- edges are the bin edges; ignored if type=='lin' or 'log'
+	- n_bin is the number of bins, i.e. len(edges)-1
+	- type can be:
+		- 'lin' linear binning
+		- 'log' logarithmic binning
+		- 'custom' strictly incresing binning
+	
+- void set_catalog_from_hist(histo_t *p1,histo_t *w1,size_t n1,histo_t *p2,histo_t *w2,size_t n2,int dim_p,int dim_w): sets catalogs
+	- p1 (resp. p2) is the flattened array of dim_p spatial coordinates of catalog1 (resp. catalog2). 
+	- w1 (resp. w2) is the flattened array of dim_w weights of catalog1 (resp. catalog2)
+	- n1 (resp. n2) is the number of objects of catalog1 (resp. catalog2)
+	If corr_type='angular' is used in run_2pcf_main, p1 and p2 must be spherical coordinates theta, phi in radians.
+
+- void run_2pcf_main_aux(int ind1,int ind2,histo_t* meanr,histo_t* meanmu,histo_t* count,char* corr_type,int num_threads): computes the cross-correlation of catalog1 and catalog2
+	- ind1: index of first catalog (1 or 2)
+	- ind2: index of second catalog (1 or 2)
+	- meanr is a flattened array of size n_bin(r)*n_bin(mu): will be filled by the mean r in each (r,mu)-bin
+	- meanmu is a flattened array of size n_bin(r)*n_bin(mu): will be filled by the mean mu in each (r,mu)-bin
+	- count is a flattened array of size n_bin(r)*n_bin(mu): will be filled by the (weighted) number of objects in each (r,mu)-bin
+	- corr_type can be:
+		- 'r-mu': distance and angle to the LOS
+	- num_threads: the number of threads
+
+- void run_2pcf_main(int ind1,int ind2,histo_t* meanr,histo_t* count,char* corr_type,int num_threads): computes the cross-correlation of catalog1 and catalog2
+	- ind1: index of first catalog (1 or 2)
+	- ind2: index of second catalog (1 or 2)
+	- meanr is an array of size n_bin(r): will be filled by the mean r in each r-bin
+	- count is a flattened array of size n_bin(r): will be filled by the (weighted) number of objects in each r-bin
+	- corr_type can be:
+		- 'r-mu': distance
+		- 'angular': angular separation
+	- num_threads: the number of threads
+
+- void run_2pcf_multi(int ind1,int ind2,histo_t *meanr,histo_t *count0,histo_t *count2,histo_t *count4,histo_t *count6,histo_t *count8,int num_threads): 
+computes cross-correlation multipoles of catalog1 & catalog2
+	- ind1: index of first catalog (1 or 2)
+	- ind2: index of second catalog (1 or 2)
+	- meanr is an array of size n_bin(r): will be filled by the mean r in each r-bin
+	- count0 is an array of size n_bin(r): will be filled by the monopole in each r-bin
+	- count2 is an array of size n_bin(r): will be filled by the quadrupole in each r-bin
+	- ...
+	- count8 is an array of size n_bin(r): will be filled by the 8-pole in each r-bin
+	- num_threads: the number of threads
+
+Notes:
+- flattened arrays must be ordered according to: array[dim_pos*idata+ipos] (resp. array[dim_weight*idata+iweight]),
+where idata is the object number and ipos (resp. iweight) the i-dimension with ipos < dim_pos (resp. iweight < dim_weight),
+the number of spatial (resp. weights) dimensions.
+- It should be fairly easy to add your own C functions to the code to solve your own problem.
+- Please take mu bins from -1 to 1
+
+Examples of use of these functions are given in the class PyCute (see pyCute.py). 
+
+
+5 License.
+
+CUTE is distributed under the GPL license (see COPYING in
+the root directory). We kindly ask you to cite the program's website 
+http://members.ift.uam-csic.es/dmonge/CUTE.html and accompanying
+preprint arXiv:1210.1833 when using it for published results.
+
+
+6 Contact.
+
+Regarding bugs, suggestions, questions or petitions, feel free to contact
+the author:
+    Arnaud de Mattia: arnaud dot de dash mattia at cea dot fr 
+ 
