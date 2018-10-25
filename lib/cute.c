@@ -32,23 +32,35 @@
 #include "define.h"
 #include "common.h"
 
-Catalog catalog[MAX_CATS] = {{.n_obj=0},{.n_obj=0},{.n_obj=0},{.n_obj=0}};
+static Catalog catalog[MAX_CATS] = {{.n_obj=0},{.n_obj=0},{.n_obj=0},{.n_obj=0}};
 
-void set_num_threads(size_t num)
+void print_num_threads()
 {
-	omp_set_num_threads(num);
+	//Calculate number of threads
+	size_t num_threads=0;
+#pragma omp parallel
+	{
+#pragma omp atomic
+		num_threads++;
+	}
+	printf(" - Using %zu threads\n",num_threads);
 }
 
-void print_bin(size_t num)
+
+void set_num_threads(size_t num_threads)
+{
+	omp_set_num_threads(num_threads);
+#ifdef _VERBOSE
+	print_num_threads();
+#endif //_VERBOSE
+}
+
+void print_bin(char* mode)
 {
 	Bin bin=bin_main;
-	if (num==0) {
-		printf(" - Range: %.3f < main < %.3f\n",bin.min,bin.max);
-	}
-	else if (num==1) {
-		bin=bin_aux;
-		printf(" - Range: %.3f < aux < %.3f\n",bin.min,bin.max);
-	}
+	if (!strcmp(mode,"aux")) bin=bin_aux;
+	else if (!strcmp(mode,"radial")) bin=bin_radial;
+	printf(" - Range: %.3f < %s < %.3f\n",bin.min,mode,bin.max);
 	if (bin.type==BIN_LIN) printf(" - #bins(lin): %zu\n",bin.n_bin);
 	else if (bin.type==BIN_LOG) printf(" - #bins(log): %zu\n",bin.n_bin);
 	else if (bin.type==BIN_CUSTOM) printf(" - #bins(custom): %zu\n",bin.n_bin);
@@ -56,7 +68,7 @@ void print_bin(size_t num)
 }
 
 
-void set_bin(size_t num,histo_t* edges,size_t n_bin,char* type)
+void set_bin(char* mode,histo_t* edges,size_t n_bin,char* type)
 {
 	Bin bin;
 
@@ -89,15 +101,16 @@ void set_bin(size_t num,histo_t* edges,size_t n_bin,char* type)
 		fprintf(stderr," - Invalid main-binning type. Choices:lin, log or custom.\n");
 		fprintf(stderr," - I choose linear binning.\n");
 	}
-	if (num==0) bin_main=bin;
-	else if (num==1) bin_aux=bin;
+	if (!strcmp(mode,"main")) bin_main=bin;
+	else if (!strcmp(mode,"aux")) bin_aux=bin;
+	else if (!strcmp(mode,"radial")) bin_radial=bin;
 	else {
 		bin_main=bin;
-		fprintf(stderr," - Invalid binning number. Choices: 0(main), 1(aux).\n");
+		fprintf(stderr," - Invalid binning. Choices: main, aux, radial.\n");
 		fprintf(stderr," - I choose main.\n");
 	}
 #ifdef _VERBOSE
-	print_bin(num);
+	print_bin(mode);
 	printf("\n");
 #endif //_VERBOSE
 }
@@ -201,6 +214,12 @@ void print_catalogs()
 	printf("\n");
 }
 
+void print_normalize(_Bool normalize)
+{
+	if (normalize) printf(" - Normalize: yes\n");
+	else printf(" - Normalize: no\n");
+}
+
 void set_catalog_from_hist(size_t num,histo_t *p,histo_t *w,size_t n,size_t dim_b,size_t dim_w)
 {	
 	catalog[num-1].pos=p;
@@ -235,24 +254,11 @@ void run_2pcf_main_aux(size_t ind1,size_t ind2,histo_t* meanmain,histo_t* meanau
 	set_corr_type(corr_type);
 	set_cross(&ind1,&ind2);
 	set_num_threads(num_threads);
-#ifdef _VERBOSE
-	print_bin(0);
-	print_bin(1);
-	//Calculate number of threads
-	size_t ii=0;
-#pragma omp parallel
-	{
-#pragma omp atomic
-		ii++;
-	}
-	printf(" - Using %zu threads\n\n",ii);
-#endif //_VERBOSE
 #ifdef _DEBUG
 	write_catalog(catalog[0],"debug_cat1.dat");
 	write_catalog(catalog[1],"debug_cat2.dat");
 #endif //_DEBUG
 	timer(0);
-	printf("*** Boxing catalogs\n");
 	if ((ind1==1)||(ind2==1)) set_catalog_box(&catalog[0]);
 	if ((ind1==2)||(ind2==2)) set_catalog_box(&catalog[1]);
 	if ((ind1==1)&&(ind2==1)) init_params(catalog[0],catalog[0]);
@@ -308,27 +314,18 @@ void run_2pcf_main(size_t ind1,size_t ind2,histo_t* meanmain,histo_t* count,char
 	size_t *indices1,*indices2;
 	size_t nfull1,nfull2;
 
+#ifdef _VERBOSE
+	print_catalogs();
+#endif //_VERBOSE
 	printf("*** 2-point correlation function (main)\n");
 	set_corr_type(corr_type);
 	set_cross(&ind1,&ind2);
 	set_num_threads(num_threads);
-#ifdef _VERBOSE
-	print_bin(0);
-	//Calculate number of threads
-	size_t ii=0;
-#pragma omp parallel
-	{
-#pragma omp atomic
-		ii++;
-	}
-	printf(" - Using %zu threads\n\n",ii);
-#endif //_VERBOSE
 #ifdef _DEBUG
 	write_catalog(catalog[0],"debug_cat1.dat");
 	write_catalog(catalog[1],"debug_cat2.dat");
 #endif //_DEBUG
 	timer(0);
-	printf("*** Boxing catalogs\n");
 	if ((ind1==1)||(ind2==1)) set_catalog_box(&catalog[0]);
 	if ((ind1==2)||(ind2==2)) set_catalog_box(&catalog[1]);
 	if ((ind1==1)&&(ind2==1)) init_params(catalog[0],catalog[0]);
@@ -381,28 +378,18 @@ void run_2pcf_multi(size_t ind1,size_t ind2,histo_t *meanmain,histo_t *count,siz
 	size_t *indices1,*indices2;
 	size_t nfull1,nfull2;
 
+#ifdef _VERBOSE
+	print_catalogs();
+#endif //_VERBOSE
 	printf("*** 2-point correlation function multipoles\n");
 	set_multi_type(multi_type,num_ells);
 	set_cross(&ind1,&ind2);
 	set_num_threads(num_threads);
-#ifdef _VERBOSE
-	print_bin(0);
-	print_bin(1);
-	//Calculate number of threads
-	size_t ii=0;
-#pragma omp parallel
-	{
-#pragma omp atomic
-		ii++;
-	}
-	printf(" - Using %zu threads\n\n",ii);
-#endif //_VERBOSE
 #ifdef _DEBUG
 	write_catalog(catalog[0],"debug_cat1.dat");
 	write_catalog(catalog[1],"debug_cat2.dat");
 #endif //_DEBUG
 	timer(0);
-	printf("*** Boxing catalogs\n");
 	if ((ind1==1)||(ind2==1)) set_catalog_box(&catalog[0]);
 	if ((ind1==2)||(ind2==2)) set_catalog_box(&catalog[1]);
 	if ((ind1==1)&&(ind2==1)) init_params(catalog[0],catalog[0]);
@@ -447,7 +434,7 @@ void run_2pcf_multi(size_t ind1,size_t ind2,histo_t *meanmain,histo_t *count,siz
 	free_params();
 }
 
-void run_2pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,size_t num_threads)
+void run_2pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,_Bool normalize,size_t num_threads)
 {
 #ifdef _VERBOSE
 	print_catalogs();
@@ -457,40 +444,36 @@ void run_2pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,size_
 	set_multi_type(multi_type,num_ells);
 	set_num_threads(num_threads);
 #ifdef _VERBOSE
-	print_bin(0);
-	//Calculate number of threads
-	size_t ii=0;
-#pragma omp parallel
-	{
-#pragma omp atomic
-		ii++;
-	}
-	printf(" - Using %zu threads\n\n",ii);
+	print_normalize(normalize);
 #endif //_VERBOSE
-	cross_2pcf_multi_radial(catalog,count,1);
+	cross_2pcf_multi_radial(catalog,count,normalize);
 }
 
-void run_4pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,size_t num_threads)
+void run_4pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,_Bool normalize,size_t num_threads)
 {
 #ifdef _VERBOSE
 	print_catalogs();
 #endif //_VERBOSE
 	dim_pos = dim_box;
-	printf("*** 2-point radial correlation function multipoles\n");
+	printf("*** 4-point radial correlation function multipoles\n");
 	set_multi_type(multi_type,num_ells);
 	set_num_threads(num_threads);
 #ifdef _VERBOSE
-	print_bin(0);
-	//Calculate number of threads
-	size_t ii=0;
-#pragma omp parallel
-	{
-#pragma omp atomic
-		ii++;
-	}
-	printf(" - Using %zu threads\n\n",ii);
+	print_normalize(normalize);
 #endif //_VERBOSE
-	cross_4pcf_multi_radial(catalog,count);
+	cross_4pcf_multi_radial(catalog,count,normalize);
+}
+
+void run_4pcf_multi(histo_t *count,size_t num_ells,char* multi_type,size_t num_threads)
+{
+#ifdef _VERBOSE
+	print_catalogs();
+#endif //_VERBOSE
+	dim_pos = dim_box;
+	printf("*** 4-point correlation function multipoles\n");
+	set_multi_type(multi_type,num_ells);
+	set_num_threads(num_threads);
+	cross_4pcf_multi(catalog,count);
 }
 
 void run_3pcf_multi(histo_t *count,size_t num_ells,char* multi_type,size_t num_threads)
@@ -502,21 +485,10 @@ void run_3pcf_multi(histo_t *count,size_t num_ells,char* multi_type,size_t num_t
 	printf("*** 3-point correlation function multipoles\n");
 	set_multi_type(multi_type,num_ells);
 	set_num_threads(num_threads);
-#ifdef _VERBOSE
-	print_bin(0);
-	//Calculate number of threads
-	size_t ii=0;
-#pragma omp parallel
-	{
-#pragma omp atomic
-		ii++;
-	}
-	printf(" - Using %zu threads\n\n",ii);
-#endif //_VERBOSE
 	cross_3pcf_multi(catalog,count);
 }
 
-void run_3pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,size_t num_threads)
+void run_3pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,_Bool normalize,size_t num_threads)
 {
 #ifdef _VERBOSE
 	print_catalogs();
@@ -526,15 +498,7 @@ void run_3pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,size_
 	set_multi_type(multi_type,num_ells);
 	set_num_threads(num_threads);
 #ifdef _VERBOSE
-	print_bin(0);
-	//Calculate number of threads
-	size_t ii=0;
-#pragma omp parallel
-	{
-#pragma omp atomic
-		ii++;
-	}
-	printf(" - Using %zu threads\n\n",ii);
+	print_normalize(normalize);
 #endif //_VERBOSE
-	cross_3pcf_multi_radial(catalog,count,1);
+	cross_3pcf_multi_radial(catalog,count,normalize);
 }

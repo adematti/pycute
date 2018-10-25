@@ -72,7 +72,7 @@ typedef struct {
 
 extern enum CORR_TYPE corr_type;
 extern enum MULTI_TYPE multi_type;
-extern Bin bin_main,bin_aux;
+extern Bin bin_main,bin_aux,bin_radial;
 extern size_t *n_side,n_boxes,dim_box,dim_weight,dim_pos,n_ells;
 extern histo_t *l_box;
 

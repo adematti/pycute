@@ -38,7 +38,7 @@ Bin bin_main;
 Bin bin_aux;
 
 //Boxing variables
-int *n_side,n_boxes,dim_box,dim_weight,dim_pos,n_ells;
+size_t *n_side,n_boxes,dim_box,dim_weight,dim_pos,n_ells;
 histo_t *l_box;
 ///
 ////////////////////////////////////////

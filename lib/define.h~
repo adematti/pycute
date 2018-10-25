@@ -32,7 +32,7 @@
 #define CLAMP(x, low, high)  (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x))) //min(max(a,low),high)
 //#define ABS(a)   (((a) < 0) ? -(a) : (a)) //Absolute value
 #define MAX_ELLS 9
-#define MAX_CATS 3
+#define MAX_CATS 4
 
 enum BIN_TYPE {BIN_LIN, BIN_LOG, BIN_CUSTOM};
 enum CORR_TYPE {CORR_SMU, CORR_ANGULAR, CORR_SCOS};

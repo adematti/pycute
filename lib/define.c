@@ -36,6 +36,7 @@ enum CORR_TYPE corr_type;
 enum MULTI_TYPE multi_type;
 Bin bin_main;
 Bin bin_aux;
+Bin bin_radial;
 
 //Boxing variables
 size_t *n_side,n_boxes,dim_box,dim_weight,dim_pos,n_ells;

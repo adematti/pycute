@@ -30,22 +30,20 @@ INCLUDECOM = -I./lib -I$(GSL_INC)
 LIBCPU = $(LGSL) -lm
 LIBGPU = $(LGSL) -L$(CUDADIR)/lib64 -lcudart -lpthread -lm
 
-#.so FILES
-DEF = $(CUTE_LIB)/define.so
-COM = $(CUTE_LIB)/common.so
-CORR = $(CUTE_LIB)/correlator.so
-BOX = $(CUTE_LIB)/boxes.so
-CUTE = $(CUTE_LIB)/cute.so
-OFILES = $(DEF) $(COM) $(CORR) $(BOX) $(CUTE)
-
 #.c FILES
 CDEF = $(CUTE_LIB)/define.c
 CCOM = $(CUTE_LIB)/common.c
 CCORR = $(CUTE_LIB)/correlator.c
 CBOX = $(CUTE_LIB)/boxes.c
 CCUTE = $(CUTE_LIB)/cute.c
-IFILES = $(CDEF) $(CCOM) $(CCORR) $(CBOX) $(CCUTE)
 
+#.o FILES
+ODEF = $(CUTE_LIB)/define.o
+OCOM = $(CUTE_LIB)/common.o
+OCORR = $(CUTE_LIB)/correlator.o
+OBOX = $(CUTE_LIB)/boxes.o
+OCUTE = $(CUTE_LIB)/cute.o
+OFILES = $(ODEF) $(OCOM) $(OCORR) $(OBOX) $(OCUTE)
 
 #FINAL GOAL
 EXE = CUTE
@@ -53,23 +51,22 @@ EXE = CUTE
 #RULES
 default : $(EXE)
 #RULE TO MAKE .o's FROM .c's
-$(DEF) : $(CDEF) Makefile
-	$(COMPCPU) $(OPTCPU) -fPIC -o $@ $(INCLUDECOM) $(LIBCPU) -shared $(IFILES)
-$(COM) : $(CCOM) Makefile
-	$(COMPCPU) $(OPTCPU) -fPIC -o $@ $(INCLUDECOM) $(LIBCPU) -shared $(IFILES)
-$(CORR) : $(CCORR) Makefile
-	$(COMPCPU) $(OPTCPU) -fPIC -o $@ $(INCLUDECOM) $(LIBCPU) -shared $(IFILES)
-$(BOX) : $(CBOX) Makefile
-	$(COMPCPU) $(OPTCPU) -fPIC -o $@ $(INCLUDECOM) $(LIBCPU) -shared $(IFILES)
-$(CUTE) : $(CCUTE) Makefile
-	$(COMPCPU) $(OPTCPU) -fPIC -o $@ $(INCLUDECOM) $(LIBCPU) -shared $(IFILES)
+$(ODEF) : $(CDEF) Makefile
+	$(COMPCPU) $(OPTCPU) -fPIC -c $< -o $@ $(INCLUDECOM) $(LIBCPU)
+$(OCOM) : $(CCOM) Makefile
+	$(COMPCPU) $(OPTCPU) -fPIC -c $< -o $@ $(INCLUDECOM) $(LIBCPU)
+$(OCORR) : $(CCORR) Makefile
+	$(COMPCPU) $(OPTCPU) -fPIC -c $< -o $@ $(INCLUDECOM) $(LIBCPU)
+$(OBOX) : $(CBOX) Makefile
+	$(COMPCPU) $(OPTCPU) -fPIC -c $< -o $@ $(INCLUDECOM) $(LIBCPU)
+$(OCUTE) : $(CCUTE) Makefile
+	$(COMPCPU) $(OPTCPU) -fPIC -c $< -o $@ $(INCLUDECOM) $(LIBCPU)
 
 #RULES TO MAKE THE FINAL EXECUTABLES
 $(EXE) : $(OFILES) Makefile
+	$(COMPCPU) $(OPTCPU) -fPIC -shared $(OFILES) -o cute.so
 
 #CLEANING RULES
 clean :
+	rm -f $(CUTE_LIB)/*.o
 	rm -f $(CUTE_LIB)/*.so
-
-cleaner :
-	rm -f $(CUTE_LIB)/*.so $(CUTE_LIB)/*~ *~ $(EXE)

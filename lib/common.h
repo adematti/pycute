@@ -87,13 +87,15 @@ void cross_2pcf_multi(size_t nbox_full1,size_t nbox_full2,size_t *indices1,size_
 
 void cross_3pcf_multi(Catalog* catalog, histo_t count[]);
 
-//void cross_3pcf_multi_radial(Catalog cat[], histo_t count[]);
 void cross_3pcf_multi_radial(Catalog cat[], histo_t count[],_Bool normalize);
 
-//void cross_2pcf_multi_radial(Catalog cat[], histo_t count[]);
 void cross_2pcf_multi_radial(Catalog cat[], histo_t count[],_Bool normalize);
 
-void cross_4pcf_multi_radial(Catalog cat[], histo_t count[]);
+void cross_4pcf_multi_radial(Catalog cat[], histo_t count[],_Bool normalize);
+
+void cross_2pcf_multi_cat(Catalog cat[], histo_t count[]);
+
+void cross_4pcf_multi(Catalog cat[], histo_t count[]);
 
 #ifdef _DEBUG
 //Debug files output
