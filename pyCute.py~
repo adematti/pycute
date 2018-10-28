@@ -228,7 +228,7 @@ class PyCute(object):
 		self.sedges = self.set_bin('main',sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',muedges,size=1)
 		self.radialedges = self.set_bin('radial',radialedges,size=radialsize,binning=radialbinning)
-		self.set_ells(los=los,ells=ells)
+		self.set_ells(ells=ells)
 		
 		self.set_catalogues([position1,position2,position3],[weight1,weight2,weight3])
 		self.run_3pcf_multi_radial(normalize=normalize,los=los,nthreads=nthreads)
@@ -314,6 +314,8 @@ class PyCute(object):
 	
 	def set_catalogues(self,positions,weights):
 		
+		self.cute.clear_catalogs()
+		
 		def size(tab):
 			return tab.shape[-1] if len(tab.shape) > 1 else 1
 		
@@ -354,8 +356,8 @@ class PyCute(object):
 		typeposition = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(n*sizeposition))
 		typeweight = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(n*sizeweight))
 		
-		self.cute.set_catalog_from_hist.argtypes = (ctypes.c_size_t,typeposition,typeweight,ctypes.c_size_t,ctypes.c_size_t,ctypes.c_size_t)
-		self.cute.set_catalog_from_hist(num,self.position[num],self.weight[num],n,sizeposition,sizeweight)
+		self.cute.set_catalog.argtypes = (ctypes.c_size_t,typeposition,typeweight,ctypes.c_size_t,ctypes.c_size_t,ctypes.c_size_t)
+		self.cute.set_catalog(num,self.position[num],self.weight[num],n,sizeposition,sizeweight)
 		
 		self.position[num].shape = (n,sizeposition)
 		self.weight[num].shape = (n,sizeweight)

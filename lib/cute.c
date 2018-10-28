@@ -239,7 +239,7 @@ void print_normalize(_Bool normalize)
 	else printf(" - Normalize: no\n");
 }
 
-void set_catalog_from_hist(size_t num,histo_t *p,histo_t *w,size_t n,size_t dim_b,size_t dim_w)
+void set_catalog(size_t num,histo_t *p,histo_t *w,size_t n,size_t dim_b,size_t dim_w)
 {	
 	catalog[num-1].pos=p;
 	catalog[num-1].weight=w;
@@ -249,6 +249,12 @@ void set_catalog_from_hist(size_t num,histo_t *p,histo_t *w,size_t n,size_t dim_
 	dim_pos=dim_box;
 	dim_weight=dim_w;
 
+}
+
+void clear_catalogs()
+{
+	size_t icat;
+	for (icat=0;icat<MAX_CATS;icat++) catalog[icat].n_obj = 0;
 }
 
 void print_correlation(size_t ind1,size_t ind2)

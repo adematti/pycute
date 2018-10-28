@@ -155,33 +155,22 @@ def reference_3pcf_multi():
 def test_3pcf_multi():
 	position1,weight1,position2,weight2 = load_catalogues()
 	pycute = PyCute()
-	#sedges = scipy.linspace(0.001,10.,1000+1)
 	pycute.set_3pcf_multi(sedges,position1,weight1,position2,weight2,ells=ells,nthreads=nthreads)
 	countsref = reference_3pcf_multi()
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 	pycute.set_3pcf_multi(sedges,position1,weight1,position2,weight2,position3=position2,weight3=weight2,ells=ells,nthreads=nthreads)
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 	
-	pycute.set_3pcf_multi(sedges,position1,weight1,position2,weight2,ells=ells,nthreads=nthreads)
-	countsref = reference_3pcf_multi()
-	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
-	
 def test_3pcf_multi_double_los():
 	position1,weight1,position2,weight2 = load_catalogues()
 	pycute = PyCute()
-	#sedges = scipy.linspace(0.001,10.,1000+1)
-	#ells = [0,2,4]
-	#pycute.set_3pcf_multi(sedges,position1,weight1,position2,weight2,ells=ells,nthreads=nthreads)
-	#countsref = 2.*pycute.counts.copy()
-	
-	"""
+	pycute.set_3pcf_multi(sedges,position1,weight1,position2,weight2,ells=ells,nthreads=nthreads)
 	countsref = 2.*pycute.counts
 	countsref[...,scipy.mod(ells,2)==1,:] = 0.
-	#pycute.set_3pcf_multi_double_los(sedges,position1,weight1,position2,weight2,ells=ells,los='midpoint',nthreads=nthreads)
-	#testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
+	pycute.set_3pcf_multi_double_los(sedges,position1,weight1,position2,weight2,ells=ells,los='midpoint',nthreads=nthreads)
+	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 	pycute.set_3pcf_multi_double_los(sedges,position1,weight1,position2,weight2,position3=position2,weight3=weight2,ells=ells,los='midpoint',nthreads=nthreads)
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
-	"""
 
 def save_reference_3pcf_multi_radial():
 	position1,weight1,position2,weight2,position3,weight3 = load_catalogues(3)
