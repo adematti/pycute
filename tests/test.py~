@@ -161,7 +161,27 @@ def test_3pcf_multi():
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 	pycute.set_3pcf_multi(sedges,position1,weight1,position2,weight2,position3=position2,weight3=weight2,ells=ells,nthreads=nthreads)
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
+	pycute.set_3pcf_multi(sedges,position1,weight1,position2,weight2,ells=ells,nthreads=nthreads)
+	countsref = reference_3pcf_multi()
+	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 	
+def test_3pcf_multi_double_los():
+	position1,weight1,position2,weight2 = load_catalogues()
+	pycute = PyCute()
+	#sedges = scipy.linspace(0.001,10.,1000+1)
+	#ells = [0,2,4]
+	#pycute.set_3pcf_multi(sedges,position1,weight1,position2,weight2,ells=ells,nthreads=nthreads)
+	#countsref = 2.*pycute.counts.copy()
+	
+	"""
+	countsref = 2.*pycute.counts
+	countsref[...,scipy.mod(ells,2)==1,:] = 0.
+	#pycute.set_3pcf_multi_double_los(sedges,position1,weight1,position2,weight2,ells=ells,los='midpoint',nthreads=nthreads)
+	#testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
+	pycute.set_3pcf_multi_double_los(sedges,position1,weight1,position2,weight2,position3=position2,weight3=weight2,ells=ells,los='midpoint',nthreads=nthreads)
+	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
+	"""
+
 def save_reference_3pcf_multi_radial():
 	position1,weight1,position2,weight2,position3,weight3 = load_catalogues(3)
 	pycute = PyCute()
@@ -212,7 +232,6 @@ def test_2pcf_multi_radial():
 	pycute.set_2pcf_multi_radial(sedges,radialedges,position1,weight1,position2,weight2,ells=ells,nthreads=nthreads)
 	countsref = reference_2pcf_multi_radial()
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
-
 
 def test_4pcf_multi_radial():
 	position1,weight1,position2,weight2,position3,weight3,position4,weight4 = load_catalogues(4)
@@ -265,6 +284,7 @@ test_smu()
 test_multi()
 test_scos()
 test_3pcf_multi()
+test_3pcf_multi_double_los()
 test_3pcf_multi_radial()
 test_2pcf_multi_radial()
 test_4pcf_multi_radial()

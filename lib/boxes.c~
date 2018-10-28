@@ -12,7 +12,7 @@
 //                                                                   //
 // CUTE is distributed in the hope that it will be useful, but       //
 // WITHOUT ANY WARRANTY; without even the implied warranty of        //
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU  //
 // General Public License for more details.                          //
 //                                                                   //
 // You should have received a copy of the GNU General Public License //
@@ -23,6 +23,10 @@
 /*********************************************************************/
 //                             3D boxes                              //
 /*********************************************************************/
+
+#ifndef _CUTE_BOXES_
+#define _CUTE_BOXES_
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -34,6 +38,8 @@
 
 static histo_t *bound_min;
 static histo_t *bound_max;
+static histo_t *l_box;
+static size_t *n_side;
 static size_t n_obj_tot;
 
 static histo_t my_sqrt(histo_t x)
@@ -220,7 +226,7 @@ void print_boxes()
 
 void init_params(Catalog cat1,Catalog cat2)
 {
-	size_t idim,iobj,idim;
+	size_t idim,iobj;
 	size_t n_tot1=cat1.n_obj*dim_box;
 	size_t n_tot2=cat2.n_obj*dim_box;
 	n_obj_tot = cat1.n_obj+cat2.n_obj;
@@ -417,3 +423,5 @@ Box* make_boxes_from_catalog(Catalog cat,size_t **box_indices,size_t *n_box_full
 	
 	return boxes;
 }
+
+#endif //_CUTE_BOXES_

@@ -12,7 +12,7 @@
 //                                                                   //
 // CUTE is distributed in the hope that it will be useful, but       //
 // WITHOUT ANY WARRANTY; without even the implied warranty of        //
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU  //
 // General Public License for more details.                          //
 //                                                                   //
 // You should have received a copy of the GNU General Public License //
@@ -23,10 +23,6 @@
 #ifndef _CUTE_DEFINE_
 #define _CUTE_DEFINE_
 
-/*                MACROS            */
-// Other possible macros
-//_DEBUG, _VERBOSE
-
 #define MAX(a, b) (((a) > (b)) ? (a) : (b)) //Maximum of two numbers
 #define MIN(a, b) (((a) < (b)) ? (a) : (b)) //Minimum of two numbers
 #define CLAMP(x, low, high)  (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x))) //min(max(a,low),high)
@@ -34,15 +30,16 @@
 #define MAX_ELLS 9
 #define MAX_CATS 4
 
-enum BIN_TYPE {BIN_LIN, BIN_LOG, BIN_CUSTOM};
-enum CORR_TYPE {CORR_SMU, CORR_ANGULAR, CORR_SCOS};
-enum MULTI_TYPE {MULTI_ALL, MULTI_EVEN, MULTI_ODD};
-
 #ifdef _FLOAT32
 typedef float histo_t;
 #else
 typedef double histo_t;
 #endif //_FLOAT32
+
+typedef enum {BIN_LIN, BIN_LOG, BIN_CUSTOM} BIN_TYPE;
+typedef enum {CORR_SMU, CORR_ANGULAR, CORR_SCOS} CORR_TYPE;
+typedef enum {LOS_MIDPOINT, LOS_ENDPOINT} LOS_TYPE;
+typedef enum {MULTI_ALL, MULTI_EVEN, MULTI_ODD} MULTI_TYPE;
 
 //Box for 2PCFs
 typedef struct {
@@ -67,13 +64,13 @@ typedef struct {
 	size_t n_bin;
 	histo_t min,max,step,log10min,log10max;
 	histo_t* edges;
-	enum BIN_TYPE type;  
+	BIN_TYPE type;  
 } Bin; //Bin
 
-extern enum CORR_TYPE corr_type;
-extern enum MULTI_TYPE multi_type;
-extern Bin bin_main,bin_aux;
-extern size_t *n_side,n_boxes,dim_box,dim_weight,dim_pos,n_ells;
-extern histo_t *l_box;
+CORR_TYPE corr_type;
+MULTI_TYPE multi_type;
+LOS_TYPE los_type;
+Bin bin_main,bin_aux,bin_radial;
+size_t n_boxes,dim_box,dim_weight,dim_pos,n_ells;
 
 #endif //_CUTE_DEFINE_

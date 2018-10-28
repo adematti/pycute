@@ -91,9 +91,9 @@ void cross_3pcf_multi_radial(Catalog cat[], histo_t count[],_Bool normalize);
 
 void cross_2pcf_multi_radial(Catalog cat[], histo_t count[],_Bool normalize);
 
-void cross_2pcf_multi_cat(Catalog cat[], histo_t count[]);
+void cross_4pcf_multi_radial(Catalog cat[], histo_t count[],_Bool normalize);
 
-void cross_4pcf_multi_radial(Catalog cat[], histo_t count[]);
+void cross_2pcf_multi_cat(Catalog cat[], histo_t count[]);
 
 void cross_4pcf_multi(Catalog cat[], histo_t count[]);
 

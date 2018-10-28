@@ -12,7 +12,7 @@
 //                                                                   //
 // CUTE is distributed in the hope that it will be useful, but       //
 // WITHOUT ANY WARRANTY; without even the implied warranty of        //
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU  //
 // General Public License for more details.                          //
 //                                                                   //
 // You should have received a copy of the GNU General Public License //
@@ -23,6 +23,7 @@
 /*********************************************************************/
 //                             3D boxes                              //
 /*********************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -34,6 +35,8 @@
 
 static histo_t *bound_min;
 static histo_t *bound_max;
+static histo_t *l_box;
+static size_t *n_side;
 static size_t n_obj_tot;
 
 static histo_t my_sqrt(histo_t x)

@@ -12,7 +12,7 @@
 //                                                                   //
 // CUTE is distributed in the hope that it will be useful, but       //
 // WITHOUT ANY WARRANTY; without even the implied warranty of        //
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU  //
 // General Public License for more details.                          //
 //                                                                   //
 // You should have received a copy of the GNU General Public License //
@@ -23,6 +23,7 @@
 /*********************************************************************/
 //                               Main                                //
 /*********************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -115,12 +116,11 @@ void set_bin(char* mode,histo_t* edges,size_t n_bin,char* type)
 #endif //_VERBOSE
 }
 
-
 void print_corr_type()
 {
-	if (corr_type==CORR_SMU) printf(" - Type: s-mu\n");
-	else if (corr_type==CORR_ANGULAR) printf(" - Type: angular\n");
-	else if (corr_type==CORR_SCOS) printf(" - Type: s-cos\n");
+	if (corr_type==CORR_SMU) printf(" - corr-type: s-mu\n");
+	else if (corr_type==CORR_ANGULAR) printf(" - corr-type: angular\n");
+	else if (corr_type==CORR_SCOS) printf(" - corr-type: s-cos\n");
 }
 
 void set_corr_type(char* type)
@@ -143,19 +143,19 @@ void print_multi_type()
 {
 	size_t l;
 	if (multi_type==MULTI_ALL) {
-		printf(" - Type: all\n");
+		printf(" - multi-type: all\n");
 		printf(" - ells:");
 		for (l=0;l<n_ells;l++) printf(" %zu",l);
 		printf("\n");
 	}
 	if (multi_type==MULTI_EVEN) {
-		printf(" - Type: even\n");
+		printf(" - multi-type: even\n");
 		printf(" - ells:");
 		for (l=0;l<n_ells;l++) printf(" %zu",2*l);
 		printf("\n");
 	}
 	if (multi_type==MULTI_ODD) {
-		printf(" - Type: odd\n");
+		printf(" - multi-type: odd\n");
 		printf(" - ells:");
 		for (l=0;l<n_ells;l++) printf(" %zu",2*l+1);
 		printf("\n");
@@ -164,7 +164,6 @@ void print_multi_type()
 
 void set_multi_type(char* type,size_t num_ells)
 {
-	//printf("*** Correlation type:\n");
 	if (!strcmp(type,"all")) multi_type=MULTI_ALL;
 	else if (!strcmp(type,"even")) multi_type=MULTI_EVEN;
 	else if (!strcmp(type,"odd")) multi_type=MULTI_ODD;
@@ -177,6 +176,26 @@ void set_multi_type(char* type,size_t num_ells)
 	n_ells = MIN(num_ells,MAX_ELLS);
 #ifdef _VERBOSE
 	print_multi_type();
+#endif //_VERBOSE
+}
+
+void print_los_type()
+{
+	if (los_type==LOS_MIDPOINT) printf(" - los-type: midpoint\n");
+	else if (los_type==LOS_ENDPOINT) printf(" - los-type: endpoint\n");
+}
+
+void set_los_type(char* type)
+{
+	if (!strcmp(type,"midpoint")) los_type=LOS_MIDPOINT;
+	else if (!strcmp(type,"endpoint")) los_type=LOS_ENDPOINT;
+	else {
+		los_type=LOS_MIDPOINT;
+		fprintf(stderr," - Invalid los type. Choices: middle or endpoint.\n");
+		fprintf(stderr," - I choose middle.\n");
+	}
+#ifdef _VERBOSE
+	print_los_type();
 #endif //_VERBOSE
 }
 
@@ -227,6 +246,7 @@ void set_catalog_from_hist(size_t num,histo_t *p,histo_t *w,size_t n,size_t dim_
 	catalog[num-1].n_obj=n;
 	
 	dim_box=dim_b;
+	dim_pos=dim_box;
 	dim_weight=dim_w;
 
 }
@@ -239,7 +259,7 @@ void print_correlation(size_t ind1,size_t ind2)
 }
 
 
-void run_2pcf_main_aux(size_t ind1,size_t ind2,histo_t* meanmain,histo_t* meanaux,histo_t* count,char* corr_type,size_t num_threads)
+void run_2pcf_main_aux(size_t ind1,size_t ind2,histo_t* meanmain,histo_t* meanaux,histo_t* count,char* corr_type,char *los_type,size_t num_threads)
 {
 
 	Box *boxes1=NULL;
@@ -252,6 +272,7 @@ void run_2pcf_main_aux(size_t ind1,size_t ind2,histo_t* meanmain,histo_t* meanau
 #endif //_VERBOSE
 	printf("*** 2-point correlation function (main,aux)\n");
 	set_corr_type(corr_type);
+	set_los_type(los_type);
 	set_cross(&ind1,&ind2);
 	set_num_threads(num_threads);
 #ifdef _DEBUG
@@ -370,7 +391,7 @@ void run_2pcf_main(size_t ind1,size_t ind2,histo_t* meanmain,histo_t* count,char
 	free_params();
 }
 
-void run_2pcf_multi(size_t ind1,size_t ind2,histo_t *meanmain,histo_t *count,size_t num_ells,char* multi_type,size_t num_threads)
+void run_2pcf_multi(size_t ind1,size_t ind2,histo_t *meanmain,histo_t *count,size_t num_ells,char* multi_type,char *los_type,size_t num_threads)
 {
 
 	Box *boxes1=NULL;
@@ -383,6 +404,7 @@ void run_2pcf_multi(size_t ind1,size_t ind2,histo_t *meanmain,histo_t *count,siz
 #endif //_VERBOSE
 	printf("*** 2-point correlation function multipoles\n");
 	set_multi_type(multi_type,num_ells);
+	set_los_type(los_type);
 	set_cross(&ind1,&ind2);
 	set_num_threads(num_threads);
 #ifdef _DEBUG
@@ -434,14 +456,53 @@ void run_2pcf_multi(size_t ind1,size_t ind2,histo_t *meanmain,histo_t *count,siz
 	free_params();
 }
 
-void run_2pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,_Bool normalize,size_t num_threads)
+void run_3pcf_multi(histo_t *count,size_t num_ells,char* multi_type,char *los_type,size_t num_threads)
 {
 #ifdef _VERBOSE
 	print_catalogs();
 #endif //_VERBOSE
-	dim_pos = dim_box;
+	printf("*** 3-point correlation function multipoles\n");
+	set_multi_type(multi_type,num_ells);
+	set_los_type(los_type);
+	set_num_threads(num_threads);
+	cross_3pcf_multi(catalog,count);
+}
+
+void run_3pcf_multi_double_los(histo_t *count,size_t num_ells,char* multi_type,char *los_type,size_t num_threads)
+{
+#ifdef _VERBOSE
+	print_catalogs();
+#endif //_VERBOSE
+	printf("*** 3-point correlation function multipoles with double los for cat2\n");
+	set_multi_type(multi_type,num_ells);
+	set_los_type(los_type);
+	set_num_threads(num_threads);
+	cross_3pcf_multi_double_los(catalog,count);
+}
+
+void run_3pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,_Bool normalize,char *los_type,size_t num_threads)
+{
+#ifdef _VERBOSE
+	print_catalogs();
+#endif //_VERBOSE
+	printf("*** 3-point radial correlation function multipoles\n");
+	set_multi_type(multi_type,num_ells);
+	set_los_type(los_type);
+	set_num_threads(num_threads);
+#ifdef _VERBOSE
+	print_normalize(normalize);
+#endif //_VERBOSE
+	cross_3pcf_multi_radial(catalog,count,normalize);
+}
+
+void run_2pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,_Bool normalize,char *los_type,size_t num_threads)
+{
+#ifdef _VERBOSE
+	print_catalogs();
+#endif //_VERBOSE
 	printf("*** 2-point radial correlation function multipoles\n");
 	set_multi_type(multi_type,num_ells);
+	set_los_type(los_type);
 	set_num_threads(num_threads);
 #ifdef _VERBOSE
 	print_normalize(normalize);
@@ -449,14 +510,14 @@ void run_2pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,_Bool
 	cross_2pcf_multi_radial(catalog,count,normalize);
 }
 
-void run_4pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,_Bool normalize,size_t num_threads)
+void run_4pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,_Bool normalize,char *los_type,size_t num_threads)
 {
 #ifdef _VERBOSE
 	print_catalogs();
 #endif //_VERBOSE
-	dim_pos = dim_box;
 	printf("*** 4-point radial correlation function multipoles\n");
 	set_multi_type(multi_type,num_ells);
+	set_los_type(los_type);
 	set_num_threads(num_threads);
 #ifdef _VERBOSE
 	print_normalize(normalize);
@@ -464,41 +525,14 @@ void run_4pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,_Bool
 	cross_4pcf_multi_radial(catalog,count,normalize);
 }
 
-void run_4pcf_multi(histo_t *count,size_t num_ells,char* multi_type,size_t num_threads)
+void run_4pcf_multi(histo_t *count,size_t num_ells,char* multi_type,char *los_type,size_t num_threads)
 {
 #ifdef _VERBOSE
 	print_catalogs();
 #endif //_VERBOSE
-	dim_pos = dim_box;
 	printf("*** 4-point correlation function multipoles\n");
 	set_multi_type(multi_type,num_ells);
+	set_los_type(los_type);
 	set_num_threads(num_threads);
 	cross_4pcf_multi(catalog,count);
-}
-
-void run_3pcf_multi(histo_t *count,size_t num_ells,char* multi_type,size_t num_threads)
-{
-#ifdef _VERBOSE
-	print_catalogs();
-#endif //_VERBOSE
-	dim_pos = dim_box;
-	printf("*** 3-point correlation function multipoles\n");
-	set_multi_type(multi_type,num_ells);
-	set_num_threads(num_threads);
-	cross_3pcf_multi(catalog,count);
-}
-
-void run_3pcf_multi_radial(histo_t *count,size_t num_ells,char* multi_type,_Bool normalize,size_t num_threads)
-{
-#ifdef _VERBOSE
-	print_catalogs();
-#endif //_VERBOSE
-	dim_pos = dim_box;
-	printf("*** 3-point radial correlation function multipoles\n");
-	set_multi_type(multi_type,num_ells);
-	set_num_threads(num_threads);
-#ifdef _VERBOSE
-	print_normalize(normalize);
-#endif //_VERBOSE
-	cross_3pcf_multi_radial(catalog,count,normalize);
 }

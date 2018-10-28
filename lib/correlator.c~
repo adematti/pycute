@@ -12,7 +12,7 @@
 //                                                                   //
 // CUTE is distributed in the hope that it will be useful, but       //
 // WITHOUT ANY WARRANTY; without even the implied warranty of        //
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU  //
 // General Public License for more details.                          //
 //                                                                   //
 // You should have received a copy of the GNU General Public License //
@@ -127,13 +127,15 @@ static histo_t get_fast_distance_aux(histo_t *pos1,histo_t *pos2)
 	histo_t norm1=0.;
 	histo_t norm2=0.;
 	if (corr_type==CORR_SMU) {
-		histo_t diff,mean;
+		histo_t diff,los;
 		for(idim=0;idim<dim_pos;idim++){
 			diff=pos2[idim]-pos1[idim];
-			mean=pos2[idim]+pos1[idim];
+			if (los_type==LOS_ENDPOINT) los=pos1[idim];
+			else los=pos2[idim]+pos1[idim];
+			los=pos2[idim]+pos1[idim];
 			norm1+=diff*diff;
-			norm2+=mean*mean;
-			dist+=diff*mean;
+			norm2+=los*los;
+			dist+=diff*los;
 		}
 	}
 	else if (corr_type==CORR_SCOS) {
@@ -630,7 +632,7 @@ void cross_2pcf_multi(size_t nbox_full1,size_t nbox_full2,size_t *indices1,size_
 	}
 
 #pragma omp parallel default(none)				\
-  shared(nbox_full1,indices1,boxes1,nbox_full2,indices2,boxes2,meanmain,count,n_side,n_bin_tot,bin_main,bin_aux,dim_pos,dim_weight,n_ells) private(threadmeanmain,threadcount,leg)
+  shared(nbox_full1,indices1,boxes1,nbox_full2,indices2,boxes2,meanmain,count,n_bin_tot,bin_main,bin_aux,dim_pos,dim_weight,n_ells) private(threadmeanmain,threadcount,leg)
 	{
 		size_t ibin,ibox1;
 		threadmeanmain=(histo_t *) malloc(n_bin_tot*sizeof(histo_t));
@@ -710,7 +712,7 @@ void auto_2pcf_multi(size_t nbox_full,size_t *indices,Box *boxes,histo_t meanmai
 	}
 
 #pragma omp parallel default(none)				\
-  shared(nbox_full,indices,boxes,meanmain,count,n_side,n_bin_tot,bin_main,bin_aux,dim_pos,dim_weight,n_ells) private(threadmeanmain,threadcount,leg)
+  shared(nbox_full,indices,boxes,meanmain,count,n_bin_tot,bin_main,bin_aux,dim_pos,dim_weight,n_ells) private(threadmeanmain,threadcount,leg)
 	{
 		size_t ibin,ibox1;
 		threadmeanmain=(histo_t *) malloc(bin_main.n_bin*sizeof(histo_t));
@@ -799,7 +801,7 @@ void auto_2pcf_multi(size_t nbox_full,size_t *indices,Box *boxes,histo_t meanmai
 void cross_3pcf_multi(Catalog cat[], histo_t count[])
 {
   //////
-  // 3pcf cross, aux is \mu
+  // 3pcf cross
 	
 	set_fast_distance_main_limit();
 	set_fast_distance_aux_limit();
@@ -913,10 +915,109 @@ void cross_3pcf_multi(Catalog cat[], histo_t count[])
 }
 
 
+void cross_3pcf_multi_double_los(Catalog cat[], histo_t count[])
+{
+  //////
+  // 3pcf cross
+	
+	set_fast_distance_main_limit();
+	set_fast_distance_aux_limit();
+	size_t n_bin_tot = bin_main.n_bin*bin_main.n_bin*n_ells*n_ells;
+	size_t n_bin_sec = bin_main.n_bin*n_ells;
+	size_t ibin;
+	size_t max_cats = 3;
+	histo_t leg[MAX_ELLS];
+	
+	Catalog cat1 = cat[0];
+	if (cat[2].n_obj==0) max_cats = 2; 
+	
+	histo_t* countsec[3];
+	//printf("nells %zu\n",n_ells);
+	for (ibin=0;ibin<n_bin_tot;ibin++) count[ibin]=0.;
+	histo_t* threadcount;
+	
+#pragma omp parallel default(none)				\
+  shared(count,cat,cat1,max_cats,n_bin_tot,n_bin_sec,bin_main,dim_pos,dim_weight,n_ells) private(countsec,threadcount,leg)
+	{
+		size_t icat,ibin,iobj1;
+		for (icat=1;icat<3;icat++) countsec[icat] = (histo_t*) malloc(n_bin_sec*sizeof(histo_t));
+		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
+		for(ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0.;
+		
+#pragma omp for nowait schedule(dynamic)
+		for (iobj1=0;iobj1<cat1.n_obj;iobj1++) {
+			histo_t* pos1=&(cat1.pos[dim_pos*iobj1]);
+			histo_t weight1=cat1.weight[dim_weight*iobj1];
+			if (weight1==0.) continue;
+			size_t icat;
+			for (icat=1;icat<3;icat++) {
+				histo_t *count2 = countsec[icat];
+				size_t ibin2;
+				for (ibin2=0;ibin2<n_bin_sec;ibin2++) count2[ibin2]=0.;
+			}
+			for (icat=1;icat<max_cats;icat++) {
+				Catalog cat2 = cat[icat];
+				histo_t *count2 = countsec[icat];
+				histo_t *count3 = countsec[2];
+				size_t iobj2;
+				for (iobj2=0;iobj2<cat2.n_obj;iobj2++) {
+					histo_t* pos2=&(cat2.pos[dim_pos*iobj2]);
+					histo_t fast_dist_main = get_fast_distance_main(pos1,pos2);
+					if (visit_main(fast_dist_main)) {
+						histo_t fast_dist_aux_1 = get_fast_distance_aux(pos1,pos2);
+						histo_t fast_dist_aux_2 = (icat==1) ? get_fast_distance_aux(pos2,pos1) : fast_dist_aux_1;
+						//histo_t fast_dist_aux_2 = fast_dist_aux_1;
+						if (visit_aux(fast_dist_aux_1) && visit_aux(fast_dist_aux_2)) {
+							size_t ibin = get_bin_index(get_distance_main(fast_dist_main),bin_main);
+							histo_t weight=cat2.weight[dim_weight*iobj2];
+							legendre(fast_dist_aux_1,leg);
+							size_t ill2;
+							for (ill2=0;ill2<n_ells;ill2++) count2[ill2+ibin*n_ells] += leg[ill2]*weight;
+							if (max_cats==2) {
+								for (ill2=0;ill2<n_ells;ill2++) count3[ill2+ibin*n_ells] += leg[ill2]*weight;
+							}
+							if (icat==1) {
+								legendre(fast_dist_aux_2,leg);
+								for (ill2=0;ill2<n_ells;ill2++) count2[ill2+ibin*n_ells] += leg[ill2]*weight;
+							}
+						}
+					}
+				}
+			}
+			histo_t *count2 = countsec[1];
+			histo_t *count3 = countsec[2];
+			size_t ibin2;
+			for (ibin2=0;ibin2<bin_main.n_bin;ibin2++) {
+				if (count2[ibin2*n_ells]!=0.) {
+					size_t ibin3;
+					for (ibin3=0;ibin3<bin_main.n_bin;ibin3++) {
+						if (count3[ibin3*n_ells]!=0.) {
+							size_t ill2,ill3;
+							for (ill2=0;ill2<n_ells;ill2++) {
+								for (ill3=0;ill3<n_ells;ill3++) {
+									threadcount[ill3+n_ells*(ill2+n_ells*(ibin3+bin_main.n_bin*ibin2))] += weight1*count2[ill2+ibin2*n_ells]*count3[ill3+ibin3*n_ells];
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+#pragma omp critical
+		{
+			for(ibin=0;ibin<n_bin_tot;ibin++) count[ibin]+=threadcount[ibin];
+			free(threadcount);
+			for (icat=1;icat<3;icat++) free(countsec[icat]);
+		}
+	} //end omp parallel
+}
+
+
+
 void cross_3pcf_multi_radial(Catalog cat[], histo_t count[],_Bool normalize)
 {
   //////
-  // 3pcf cross, aux is the s_\parallel
+  // 3pcf cross
 	
 	set_fast_distance_main_limit();
 	set_fast_distance_aux_limit();
@@ -930,7 +1031,7 @@ void cross_3pcf_multi_radial(Catalog cat[], histo_t count[],_Bool normalize)
 	Catalog cat1 = cat[0];
 	if (cat[2].n_obj==0) max_cats = 2; 
 	
-	histo_t* countsec[MAX_CATS];
+	histo_t* countsec[3];
 	//printf("nells %zu\n",n_ells);
 	for (ibin=0;ibin<n_bin_tot;ibin++) count[ibin]=0.;
 	histo_t* threadcount;
@@ -1076,7 +1177,6 @@ void cross_3pcf_multi_radial(Catalog cat[], histo_t count[],_Bool normalize)
 	}
 }
 
-
 void cross_2pcf_multi_radial(Catalog cat[], histo_t count[],_Bool normalize)
 {
   //////
@@ -1150,112 +1250,6 @@ void cross_2pcf_multi_radial(Catalog cat[], histo_t count[],_Bool normalize)
 	} //end omp parallel
 	free(norm2);
 }
-
-/*
-void cross_2pcf_multi_radial(Catalog cat[], histo_t count[],_Bool normalize)
-{
-  //////
-  // 2pcf cross, aux is the s_\parallel
-	
-	set_fast_distance_main_limit();
-	set_fast_distance_aux_limit();
-	set_fast_distance_radial_limit();
-	size_t n_bin_tot = bin_main.n_bin*bin_radial.n_bin*n_ells;
-	size_t ibin;
-	histo_t leg[MAX_ELLS];
-	histo_t norm1=1.;
-	
-	Catalog cat1 = cat[0];
-	Catalog cat2 = cat[1];
-	//printf("%zu \n",cat1.n_obj);
-	
-	if (normalize) {
-		size_t iobj;
-		norm1=0;
-		for (iobj=0;iobj<cat1.n_obj;iobj++) {
-			norm1 += cat1.weight[dim_weight*iobj];
-		}
-	}
-
-	for (ibin=0;ibin<n_bin_tot;ibin++) count[ibin]=0.;
-	histo_t* threadcount;
-	
-#pragma omp parallel default(none)				\
-  shared(count,cat1,cat2,n_bin_tot,bin_main,bin_radial,dim_pos,dim_weight,n_ells,normalize,norm1) private(threadcount,leg)
-	{
-		size_t ibin,iobj1,iobj2,ill;
-		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
-		for (ibin=0;ibin<n_bin_tot;ibin++) {
-			threadcount[ibin]=0.;
-		}
-		
-#pragma omp for nowait schedule(dynamic)
-		for (iobj1=0;iobj1<cat1.n_obj;iobj1++) {
-			histo_t* pos1=&(cat1.pos[dim_pos*iobj1]);
-			histo_t* weight1=&(cat1.weight[dim_weight*iobj1]);
-			if (normalize) {
-				histo_t *norm2 = (histo_t*) malloc(bin_radial.n_bin*sizeof(histo_t));
-				for (ibin=0;ibin<bin_radial.n_bin;ibin++) {
-					norm2[ibin] = 0.;
-				}
-				histo_t *fast_aux = (histo_t*) malloc(cat2.n_obj*sizeof(histo_t));
-				size_t *ibinmain = (size_t*) malloc(cat2.n_obj*sizeof(size_t));
-				size_t *ibinradial = (size_t*) malloc(cat2.n_obj*sizeof(size_t));
-				for (iobj2=0;iobj2<cat2.n_obj;iobj2++) {
-					fast_aux[iobj2] = -2.;
-					ibinmain[iobj2] = 0;
-					ibinradial[iobj2] = 0;
-					histo_t* pos2=&(cat2.pos[dim_pos*iobj2]);
-					histo_t fast_dist_main = get_fast_distance_main(pos1,pos2);
-					histo_t fast_dist_aux = get_fast_distance_aux(pos1,pos2);
-					//histo_t fast_dist_radial = fast_dist_main*fast_dist_aux;
-					histo_t fast_dist_radial = get_fast_distance_radial(pos2);
-					if (visit_radial(fast_dist_radial) && visit_main(fast_dist_main) && visit_aux(fast_dist_aux)) {
-						fast_aux[iobj2] = fast_dist_aux;
-						ibinmain[iobj2] = get_bin_index(get_distance_main(fast_dist_main),bin_main);
-						ibinradial[iobj2] = get_bin_index(get_distance_radial(fast_dist_radial),bin_radial);
-						norm2[ibinradial[iobj2]] += cat2.weight[dim_weight*iobj2];
-					}
-				}
-				for (iobj2=0;iobj2<cat2.n_obj;iobj2++) {
-					if (fast_aux[iobj2]>-2.) {
-						ibin = ibinradial[iobj2]+bin_radial.n_bin*ibinmain[iobj2];
-						legendre(fast_aux[iobj2],leg);
-						histo_t weight=get_weight(weight1,&(cat2.weight[dim_weight*iobj2]))/norm2[ibinradial[iobj2]]/norm1;
-						for (ill=0;ill<n_ells;ill++) threadcount[ill+ibin*n_ells] += leg[ill]*weight;
-					}
-				}
-				free(fast_aux);
-				free(ibinmain);
-				free(ibinradial);
-			}
-			else {
-				for (iobj2=0;iobj2<cat2.n_obj;iobj2++) {
-					histo_t* pos2=&(cat2.pos[dim_pos*iobj2]);
-					histo_t fast_dist_main = get_fast_distance_main(pos1,pos2);
-					histo_t fast_dist_aux = get_fast_distance_aux(pos1,pos2);
-					//histo_t fast_dist_radial = fast_dist_main*fast_dist_aux;
-					histo_t fast_dist_radial = get_fast_distance_radial(pos2);
-					if (visit_radial(fast_dist_radial) && visit_main(fast_dist_main) && visit_aux(fast_dist_aux)) {
-						ibin = get_bin_index(get_distance_radial(fast_dist_radial),bin_radial)+bin_radial.n_bin*get_bin_index(get_distance_main(fast_dist_main),bin_main);
-						legendre(fast_dist_aux,leg);
-						histo_t weight=get_weight(weight1,&(cat2.weight[dim_weight*iobj2]));
-						for (ill=0;ill<n_ells;ill++) threadcount[ill+ibin*n_ells] += leg[ill]*weight;
-					}
-				}
-			}
-		}
-#pragma omp critical
-		{
-			for(ibin=0;ibin<n_bin_tot;ibin++) {
-				count[ibin]+=threadcount[ibin];
-			}
-			free(threadcount);
-		}
-	} //end omp parallel
-}
-*/
-
 
 void cross_4pcf_multi_radial(Catalog cat[], histo_t count[], _Bool normalize)
 {
@@ -1386,9 +1380,7 @@ void cross_4pcf_multi(Catalog cat[], histo_t count[])
 	{
 		size_t ibin,ibin1;
 		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
-		for(ibin=0;ibin<n_bin_tot;ibin++) {
-			threadcount[ibin]=0.;
-		}
+		for(ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0.;
 		
 #pragma omp for nowait schedule(dynamic)
 		for (ibin1=0;ibin1<n_bin_main;ibin1++) {
@@ -1417,3 +1409,108 @@ void cross_4pcf_multi(Catalog cat[], histo_t count[])
 	free(count1);
 	free(count2);
 }
+
+/*
+void cross_2pcf_multi_radial(Catalog cat[], histo_t count[],_Bool normalize)
+{
+  //////
+  // 2pcf cross, aux is the s_\parallel
+	
+	set_fast_distance_main_limit();
+	set_fast_distance_aux_limit();
+	set_fast_distance_radial_limit();
+	size_t n_bin_tot = bin_main.n_bin*bin_radial.n_bin*n_ells;
+	size_t ibin;
+	histo_t leg[MAX_ELLS];
+	histo_t norm1=1.;
+	
+	Catalog cat1 = cat[0];
+	Catalog cat2 = cat[1];
+	//printf("%zu \n",cat1.n_obj);
+	
+	if (normalize) {
+		size_t iobj;
+		norm1=0;
+		for (iobj=0;iobj<cat1.n_obj;iobj++) {
+			norm1 += cat1.weight[dim_weight*iobj];
+		}
+	}
+
+	for (ibin=0;ibin<n_bin_tot;ibin++) count[ibin]=0.;
+	histo_t* threadcount;
+	
+#pragma omp parallel default(none)				\
+  shared(count,cat1,cat2,n_bin_tot,bin_main,bin_radial,dim_pos,dim_weight,n_ells,normalize,norm1) private(threadcount,leg)
+	{
+		size_t ibin,iobj1,iobj2,ill;
+		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
+		for (ibin=0;ibin<n_bin_tot;ibin++) {
+			threadcount[ibin]=0.;
+		}
+		
+#pragma omp for nowait schedule(dynamic)
+		for (iobj1=0;iobj1<cat1.n_obj;iobj1++) {
+			histo_t* pos1=&(cat1.pos[dim_pos*iobj1]);
+			histo_t* weight1=&(cat1.weight[dim_weight*iobj1]);
+			if (normalize) {
+				histo_t *norm2 = (histo_t*) malloc(bin_radial.n_bin*sizeof(histo_t));
+				for (ibin=0;ibin<bin_radial.n_bin;ibin++) {
+					norm2[ibin] = 0.;
+				}
+				histo_t *fast_aux = (histo_t*) malloc(cat2.n_obj*sizeof(histo_t));
+				size_t *ibinmain = (size_t*) malloc(cat2.n_obj*sizeof(size_t));
+				size_t *ibinradial = (size_t*) malloc(cat2.n_obj*sizeof(size_t));
+				for (iobj2=0;iobj2<cat2.n_obj;iobj2++) {
+					fast_aux[iobj2] = -2.;
+					ibinmain[iobj2] = 0;
+					ibinradial[iobj2] = 0;
+					histo_t* pos2=&(cat2.pos[dim_pos*iobj2]);
+					histo_t fast_dist_main = get_fast_distance_main(pos1,pos2);
+					histo_t fast_dist_aux = get_fast_distance_aux(pos1,pos2);
+					//histo_t fast_dist_radial = fast_dist_main*fast_dist_aux;
+					histo_t fast_dist_radial = get_fast_distance_radial(pos2);
+					if (visit_radial(fast_dist_radial) && visit_main(fast_dist_main) && visit_aux(fast_dist_aux)) {
+						fast_aux[iobj2] = fast_dist_aux;
+						ibinmain[iobj2] = get_bin_index(get_distance_main(fast_dist_main),bin_main);
+						ibinradial[iobj2] = get_bin_index(get_distance_radial(fast_dist_radial),bin_radial);
+						norm2[ibinradial[iobj2]] += cat2.weight[dim_weight*iobj2];
+					}
+				}
+				for (iobj2=0;iobj2<cat2.n_obj;iobj2++) {
+					if (fast_aux[iobj2]>-2.) {
+						ibin = ibinradial[iobj2]+bin_radial.n_bin*ibinmain[iobj2];
+						legendre(fast_aux[iobj2],leg);
+						histo_t weight=get_weight(weight1,&(cat2.weight[dim_weight*iobj2]))/norm2[ibinradial[iobj2]]/norm1;
+						for (ill=0;ill<n_ells;ill++) threadcount[ill+ibin*n_ells] += leg[ill]*weight;
+					}
+				}
+				free(fast_aux);
+				free(ibinmain);
+				free(ibinradial);
+			}
+			else {
+				for (iobj2=0;iobj2<cat2.n_obj;iobj2++) {
+					histo_t* pos2=&(cat2.pos[dim_pos*iobj2]);
+					histo_t fast_dist_main = get_fast_distance_main(pos1,pos2);
+					histo_t fast_dist_aux = get_fast_distance_aux(pos1,pos2);
+					//histo_t fast_dist_radial = fast_dist_main*fast_dist_aux;
+					histo_t fast_dist_radial = get_fast_distance_radial(pos2);
+					if (visit_radial(fast_dist_radial) && visit_main(fast_dist_main) && visit_aux(fast_dist_aux)) {
+						ibin = get_bin_index(get_distance_radial(fast_dist_radial),bin_radial)+bin_radial.n_bin*get_bin_index(get_distance_main(fast_dist_main),bin_main);
+						legendre(fast_dist_aux,leg);
+						histo_t weight=get_weight(weight1,&(cat2.weight[dim_weight*iobj2]));
+						for (ill=0;ill<n_ells;ill++) threadcount[ill+ibin*n_ells] += leg[ill]*weight;
+					}
+				}
+			}
+		}
+#pragma omp critical
+		{
+			for(ibin=0;ibin<n_bin_tot;ibin++) {
+				count[ibin]+=threadcount[ibin];
+			}
+			free(threadcount);
+		}
+	} //end omp parallel
+}
+*/
