@@ -24,9 +24,6 @@
 //                             3D boxes                              //
 /*********************************************************************/
 
-#ifndef _CUTE_BOXES_
-#define _CUTE_BOXES_
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -39,6 +36,7 @@
 static histo_t *bound_min;
 static histo_t *bound_max;
 static histo_t *l_box;
+static size_t n_boxes;
 static size_t *n_side;
 static size_t n_obj_tot;
 
@@ -156,20 +154,20 @@ void ind2pos(size_t index[],histo_t pos[])
 }
 
 
-void free_boxes(Box *boxes)
+void free_mesh(Mesh mesh)
 {
 	size_t ibox;
-	for(ibox=0;ibox<n_boxes;ibox++) {
-		if(boxes[ibox].n_obj>0) {
-			free(boxes[ibox].pos);
-			free(boxes[ibox].weight);
-			free(boxes[ibox].index);
-			free(boxes[ibox].visit_min);
-			free(boxes[ibox].visit_max);
+	for(ibox=0;ibox<mesh.n_boxes;ibox++) {
+		if(mesh.boxes[ibox].n_obj>0) {
+			free(mesh.boxes[ibox].pos);
+			free(mesh.boxes[ibox].weight);
+			free(mesh.boxes[ibox].index);
+			free(mesh.boxes[ibox].visit_min);
+			free(mesh.boxes[ibox].visit_max);
 		}
 	}
 
-	free(boxes);	
+	free(mesh.boxes);
 }
 
 void free_params()
@@ -181,11 +179,11 @@ void free_params()
 }
 
 
-Box *init_boxes()
+Box* init_boxes(size_t n_boxes)
 {
 	size_t ibox;
-	Box *boxes=(Box *)malloc(n_boxes*sizeof(Box));
-	if(boxes==NULL) error_mem_out();
+	Box* boxes = (Box *) malloc(n_boxes*sizeof(Box));
+	if (boxes==NULL) error_mem_out();
 
 	for(ibox=0;ibox<n_boxes;ibox++) {
 		boxes[ibox].n_obj=0;
@@ -213,48 +211,40 @@ void set_catalog_box(Catalog *cat)
 void print_boxes()
 {
 	size_t idim;
-	printf(" - There will be (");
+	printf(" - there will be (");
 	for (idim=0;idim<dim_box;idim++) printf("%zu,",n_side[idim]);
 	printf(")=%zu boxes in total\n",n_boxes);
-	printf(" - Full dimensions are (");
+	printf(" - full dimensions are (");
 	for (idim=0;idim<dim_box;idim++) printf("%.3f,",l_box[idim]);
 	printf(")\n");
-	printf(" - Box dimensions are (");
+	printf(" - box dimensions are (");
 	for (idim=0;idim<dim_box;idim++) printf("%.3f,",l_box[idim]/n_side[idim]);
 	printf(")\n");
 }
 
-void init_params(Catalog cat1,Catalog cat2)
+void init_params(Catalog *cats,size_t n_cats)
 {
-	size_t idim,iobj;
-	size_t n_tot1=cat1.n_obj*dim_box;
-	size_t n_tot2=cat2.n_obj*dim_box;
-	n_obj_tot = cat1.n_obj+cat2.n_obj;
+	size_t icat,idim,iobj;
+	n_obj_tot = 0;
 	if ((corr_type==CORR_SMU)||(corr_type==CORR_SCOS)) dim_pos=dim_box;
 	if (corr_type==CORR_ANGULAR) dim_pos=dim_box+1;
 
-	bound_min=(histo_t *) malloc(dim_box*sizeof(histo_t));
-	bound_max=(histo_t *) malloc(dim_box*sizeof(histo_t));
-	l_box=(histo_t *) malloc(dim_box*sizeof(histo_t));
+	bound_min = (histo_t *) malloc(dim_box*sizeof(histo_t));
+	bound_max = (histo_t *) malloc(dim_box*sizeof(histo_t));
+	l_box = (histo_t *) malloc(dim_box*sizeof(histo_t));
 
 	for (idim=0;idim<dim_box;idim++) {
-		bound_min[idim]=cat1.box[idim];
-		bound_max[idim]=cat1.box[idim];
+		bound_min[idim]=cats[0].box[idim];
+		bound_max[idim]=cats[0].box[idim];
 	}
-	
-	for(iobj=0;iobj<n_tot1;iobj+=dim_box) {
-		for (idim=0;idim<dim_box;idim++) {
-			size_t kk=iobj+idim;
-			bound_min[idim] = MIN(bound_min[idim],cat1.box[kk]);
-			bound_max[idim] = MAX(bound_max[idim],cat1.box[kk]);
-		}
-	}
-	
-	for(iobj=0;iobj<n_tot2;iobj+=dim_box) {
-		for (idim=0;idim<dim_box;idim++) {
-			size_t kk=iobj+idim;
-			bound_min[idim] = MIN(bound_min[idim],cat2.box[kk]);
-			bound_max[idim] = MAX(bound_max[idim],cat2.box[kk]);
+	for (icat=0;icat<n_cats;icat++) {
+		Catalog cat = cats[icat];
+		n_obj_tot += cat.n_obj;
+		for(iobj=0;iobj<cat.n_obj;iobj++) {
+			for (idim=0;idim<dim_box;idim++) {
+				bound_min[idim] = MIN(bound_min[idim],cat.box[iobj*dim_box+idim]);
+				bound_max[idim] = MAX(bound_max[idim],cat.box[iobj*dim_box+idim]);
+			}
 		}
 	}
 	
@@ -279,7 +269,6 @@ void init_params(Catalog cat1,Catalog cat2)
 	print_boxes();
 #endif //_VERBOSE
 }
-
 
 static void set_visit(Box box,size_t ibox)
 {
@@ -354,57 +343,56 @@ static void set_visit(Box box,size_t ibox)
 
 }
 
-
-
-Box* make_boxes_from_catalog(Catalog cat,size_t **box_indices,size_t *n_box_full)
+Mesh catalog_to_mesh(Catalog cat)
 {
-	size_t iobj,ibox,idim,nfull;
+	size_t iobj,ibox,idim;
 	size_t *index=(size_t *) malloc(dim_box*sizeof(size_t));
 	histo_t *pos=(histo_t *) malloc(dim_pos*sizeof(histo_t));
-	Box *boxes;
-
-	boxes=init_boxes(n_boxes);
 	
-	nfull=0;
-	for(iobj=0;iobj<cat.n_obj*dim_box;iobj+=dim_box) {
-		box2ind(&(cat.box[iobj]),index);
+	size_t *n_obj=(size_t *)malloc(n_boxes*sizeof(size_t));
+	for(ibox=0;ibox<n_boxes;ibox++) n_obj[ibox] = 0;
+	size_t n_full=0;
+	for(iobj=0;iobj<cat.n_obj;iobj++) {
+		box2ind(&(cat.box[iobj*dim_box]),index);
 		size_t ibox=ravel_index(index,n_side,dim_box);
-		if(boxes[ibox].n_obj==0) nfull++;
-		boxes[ibox].n_obj++;
+		if(n_obj[ibox]==0) n_full++;
+		n_obj[ibox]++;
 	}
-	*n_box_full=nfull;
-#ifdef _VERBOSE
-	printf(" - There are %zu objects in %zu out of %zu boxes \n",cat.n_obj,nfull,n_boxes);
-#endif //_VERBOSE
-	*box_indices=(size_t *)malloc(nfull*sizeof(size_t));
-	if(box_indices==NULL) error_mem_out();
-	
-	nfull=0;
+	size_t *indices = (size_t *)malloc(n_boxes*sizeof(size_t));
+	size_t *full = (size_t *)malloc(n_full*sizeof(size_t));
+	n_full = 0;
 	for(ibox=0;ibox<n_boxes;ibox++) {
-		if(boxes[ibox].n_obj>0) {
-			boxes[ibox].pos=(histo_t *)malloc(dim_pos*boxes[ibox].n_obj*sizeof(histo_t));
-			if(boxes[ibox].pos==NULL) error_mem_out();
-			boxes[ibox].weight=(histo_t *)malloc(dim_weight*boxes[ibox].n_obj*sizeof(histo_t));
-			if(boxes[ibox].weight==NULL) error_mem_out();
-			boxes[ibox].index=(size_t *)malloc(dim_box*sizeof(size_t));
-			if(boxes[ibox].index==NULL) error_mem_out();
-			boxes[ibox].visit_min=(size_t *)malloc(dim_box*sizeof(size_t));
-			if(boxes[ibox].visit_min==NULL) error_mem_out();
-			boxes[ibox].visit_max=(size_t *)malloc(dim_box*sizeof(size_t));
-			if(boxes[ibox].visit_max==NULL) error_mem_out();
-			boxes[ibox].n_obj=0;
-			set_visit(boxes[ibox],ibox);
-			//printf("visit %zu %zu %zu   %zu %zu %zu\n",boxes[ibox].index[0],boxes[ibox].visit_min[0],boxes[ibox].visit_max[0],boxes[ibox].index[1],boxes[ibox].visit_min[1],boxes[ibox].visit_max[1]);
-
-			//Get box index
-			(*box_indices)[nfull]=ibox;
-			nfull++;
+		if(n_obj[ibox]>0) {
+			indices[ibox] = n_full;
+			full[n_full] = ibox;
+			n_full++;
 		}
 	}
-
+#ifdef _VERBOSE
+	printf(" - there are %zu objects in %zu out of %zu boxes\n",cat.n_obj,n_full,n_boxes);
+#endif //_VERBOSE
+	Box *boxes = init_boxes(n_full);
+	for(ibox=0;ibox<n_full;ibox++) {
+		size_t ifull = full[ibox];
+		boxes[ibox].pos=(histo_t *)malloc(dim_pos*n_obj[ifull]*sizeof(histo_t));
+		if(boxes[ibox].pos==NULL) error_mem_out();
+		boxes[ibox].weight=(histo_t *)malloc(dim_weight*n_obj[ifull]*sizeof(histo_t));
+		if(boxes[ibox].weight==NULL) error_mem_out();
+		boxes[ibox].index=(size_t *)malloc(dim_box*sizeof(size_t));
+		if(boxes[ibox].index==NULL) error_mem_out();
+		boxes[ibox].visit_min=(size_t *)malloc(dim_box*sizeof(size_t));
+		if(boxes[ibox].visit_min==NULL) error_mem_out();
+		boxes[ibox].visit_max=(size_t *)malloc(dim_box*sizeof(size_t));
+		if(boxes[ibox].visit_max==NULL) error_mem_out();
+		boxes[ibox].n_obj=0;
+		set_visit(boxes[ibox],ifull);
+		//printf("visit %zu %zu %zu   %zu %zu %zu\n",boxes[ibox].index[0],boxes[ibox].visit_min[0],boxes[ibox].visit_max[0],boxes[ibox].index[1],boxes[ibox].visit_min[1],boxes[ibox].visit_max[1]);
+		//Get box index
+	}
+	
 	for(iobj=0;iobj<cat.n_obj;iobj++) {
 		box2ind(&(cat.box[dim_box*iobj]),index);
-		size_t ibox=ravel_index(index,n_side,dim_box);
+		size_t ibox=indices[ravel_index(index,n_side,dim_box)];
 		size_t n_obj=boxes[ibox].n_obj;
 		box2pos(&(cat.box[dim_box*iobj]),pos);
 		for (idim=0;idim<dim_pos;idim++) {
@@ -416,12 +404,38 @@ Box* make_boxes_from_catalog(Catalog cat,size_t **box_indices,size_t *n_box_full
 		}
 		boxes[ibox].n_obj++;
 	}
+	Mesh mesh;
+	mesh.n_obj = cat.n_obj;
+	mesh.n_boxes = n_full;
+	mesh.boxes = boxes;
 
 	free(cat.box);
 	free(index);
 	free(pos);
+	free(n_obj);
+	free(indices);
+	free(full);
 	
-	return boxes;
+	return mesh;
 }
 
-#endif //_CUTE_BOXES_
+void set_meshs(Catalog *cats,Mesh *meshs,size_t n_cats)
+{
+	size_t icat;
+#ifdef _DEBUG
+	for (icat=0;icat<n_cats;icat++) write_catalog(cats[icat],"debug_cat1.dat");
+#endif //_DEBUG
+	for (icat=0;icat<n_cats;icat++) set_catalog_box(&cats[icat]);
+	init_params(cats,n_cats);
+	for (icat=0;icat<n_cats;icat++) meshs[icat] = catalog_to_mesh(cats[icat]);
+#ifdef _DEBUG
+	for (icat=0;icat<n_cats;icat++) write_mesh(meshs[icat],"debug_mesh1.dat");
+#endif //_DEBUG
+}
+
+void free_meshs(Mesh *meshs,size_t n_meshs)
+{
+	size_t imesh;
+	for (imesh=0;imesh<n_meshs;imesh++) free_mesh(meshs[imesh]);
+	free_params(); 
+}

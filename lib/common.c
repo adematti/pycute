@@ -162,18 +162,18 @@ void timer(size_t i)
 		relbeg=omp_get_wtime();
 	else if(i==1) {
 		relend=omp_get_wtime();
-		printf("    Relative time ellapsed %.1f ms\n",1000*(relend-relbeg));
+		printf(" - relative time ellapsed %.1f ms\n",1000*(relend-relbeg));
 	}    
 	else if(i==2) {
 		relend=omp_get_wtime();
-		printf("    Relative time ellapsed %.1f ms\n",1000*(relend-relbeg));
+		printf(" - relative time ellapsed %.1f ms\n",1000*(relend-relbeg));
 		relbeg=omp_get_wtime();
 	}
 	else if(i==4)
 		absbeg=omp_get_wtime();
 	else if(i==5) {
 		absend=omp_get_wtime();
-		printf("    Total time ellapsed %.1f ms \n",1000*(absend-absbeg));
+		printf(" - total time ellapsed %.1f ms \n",1000*(absend-absbeg));
 	}
 #else //_HAVE_OMP
 	int diff;
@@ -183,13 +183,13 @@ void timer(size_t i)
 	else if(i==1) {
 		relend=time(NULL);
 		diff=(int)(difftime(relend,relbeg));
-		printf("    Relative time ellapsed %02d:%02d:%02d \n",
+		printf(" - relative time ellapsed %02d:%02d:%02d \n",
 		 diff/3600,(diff/60)%60,diff%60);
 	}    
 	else if(i==2) {
 		relend=time(NULL);
 		diff=(size_t)(difftime(relend,relbeg));
-		printf("    Relative time ellapsed %02d:%02d:%02d \n",
+		printf(" - relative time ellapsed %02d:%02d:%02d \n",
 		 diff/3600,(diff/60)%60,diff%60);
 		relbeg=time(NULL);
 	}
@@ -198,7 +198,7 @@ void timer(size_t i)
 	else if(i==5) {
 		absend=time(NULL);
 		diff=(size_t)(difftime(absend,absbeg));
-		printf("    Total time ellapsed %02d:%02d:%02d \n",
+		printf(" - total time ellapsed %02d:%02d:%02d \n",
 		 diff/3600,(diff/60)%60,diff%60);
 	}
 #endif //_HAVE_OMP
@@ -233,21 +233,21 @@ void free_catalog(Catalog cat)
 
 #ifdef _DEBUG
 
-void write_boxes(Box *boxes,char *fn)
+void write_mesh(Mehs mesh,char *fn)
 {
 	//////
 	// Writes pixel map into file fn, only used for debugging
 	FILE *fr;
-	size_t ii;
 	fr=fopen(fn,"w");
 	if(fr==NULL) error_open_file(fn);
-	for(ii=0;ii<n_boxes;ii++) {
-		if(boxes[ii].n_obj>0) {
-			size_t jj;
-			for(jj=0;jj<boxes[ii].n_obj;jj++) {
-				size_t kk;
-				for(kk=0;kk<dim_pos;kk++) fprintf(fr,"%f ",boxes[ii].pos[dim_pos*jj+kk]);
-				for(kk=0;kk<dim_weight;kk++) fprintf(fr,"%f ",boxes[ii].weight[dim_weight*jj+kk]);
+	size_t ibox;
+	for(ibox=0;ibox<mesh.n_boxes;ibox++) {
+		if(mesh.boxes[ibox].n_obj>0) {
+			size_t iobj;
+			for(iobj=0;iobj<mesh.boxes[ibox].n_obj;iobj++) {
+				size_t idim;
+				for(idim=0;idim<dim_pos;idim++) fprintf(fr,"%f ",boxes[idim].pos[dim_pos*iobj+idim]);
+				for(idim=0;idim<dim_weight;idim++) fprintf(fr,"%f ",boxes[idim].weight[dim_weight*iobj+idim]);
 				fprintf(fr,"\n");
 			}
 		}

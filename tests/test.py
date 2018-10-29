@@ -171,33 +171,7 @@ def test_3pcf_multi_double_los():
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 	pycute.set_3pcf_multi_double_los(sedges,position1,weight1,position2,weight2,position3=position2,weight3=weight2,ells=ells,los='midpoint',nthreads=nthreads)
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
-
-def save_reference_3pcf_multi_radial():
-	position1,weight1,position2,weight2,position3,weight3 = load_catalogues(3)
-	pycute = PyCute()
-	pycute.set_3pcf_multi_radial(sedges,radialedges,position1,weight1,position2,weight2,position3=position3,weight3=weight3,ells=ells,nthreads=nthreads)
-	scipy.save('ref_3pcf_multi_radial.npy',pycute.counts)
-		
-def reference_3pcf_multi_radial():
-	return scipy.load('ref_3pcf_multi_radial.npy')
-
-"""	
-def test_3pcf_multi_radial():
-	position1,weight1,position2,weight2,position3,weight3 = load_catalogues(3)
-	pycute = PyCute()
-	pycute.set_3pcf_multi(sedges,position1,weight1,position2,weight2,position3=position3,weight3=weight3,ells=ells,nthreads=nthreads)
-	countsref = pycute.counts
-	pycute.set_3pcf_multi_radial(sedges,[0,100],position1,weight1,position2,weight2,position3=position3,weight3=weight3,ells=ells,nthreads=nthreads)
-	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
-"""
-
-def test_3pcf_multi_radial():
-	position1,weight1,position2,weight2,position3,weight3 = load_catalogues(3)
-	pycute = PyCute()
-	pycute.set_3pcf_multi_radial(sedges,radialedges,position1,weight1,position2,weight2,position3=position3,weight3=weight3,ells=ells,nthreads=nthreads)
-	countsref = reference_3pcf_multi_radial()
-	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
-		
+	
 def save_reference_2pcf_multi_radial():
 	position1,weight1,position2,weight2 = load_catalogues()
 	pycute = PyCute()
@@ -207,15 +181,6 @@ def save_reference_2pcf_multi_radial():
 def reference_2pcf_multi_radial():
 	return scipy.load('ref_2pcf_multi_radial.npy')
 
-"""	
-def test_2pcf_multi_radial():
-	position1,weight1,position2,weight2 = load_catalogues()
-	pycute = PyCute()
-	pycute.set_2pcf_multi(sedges,position1,weight1,position2,weight2,ells=ells,nthreads=nthreads)
-	countsref = pycute.counts
-	pycute.set_2pcf_multi_radial(sedges,[0,100],position1,weight1,position2,weight2,ells=ells,nthreads=nthreads)
-	testing.assert_allclose(countsref,scipy.squeeze(pycute.counts),rtol=1e-7,atol=1e-7)
-"""
 def test_2pcf_multi_radial():
 	position1,weight1,position2,weight2 = load_catalogues()
 	pycute = PyCute()
@@ -232,17 +197,6 @@ def test_4pcf_multi_radial():
 	counts2 = pycute.counts
 	countsref = scipy.einsum('irj,krl->ikjl',counts1,counts2)
 	pycute.set_4pcf_multi_radial(sedges,radialedges,position1,weight1,position2,weight2,position3,weight3,position4,weight4,ells=ells,normalize=True,nthreads=nthreads)
-	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
-	
-def test_4pcf_multi():
-	position1,weight1,position2,weight2,position3,weight3,position4,weight4 = load_catalogues(4)
-	pycute = PyCute()
-	pycute.set_2pcf_multi(sedges,position1,weight1,position2,weight2,ells=ells,nthreads=nthreads)
-	counts1 = pycute.counts
-	pycute.set_2pcf_multi(sedges,position3,weight3,position4,weight4,ells=ells,nthreads=nthreads)
-	counts2 = pycute.counts
-	countsref = scipy.einsum('ij,kl->ikjl',counts1,counts2)
-	pycute.set_4pcf_multi(sedges,position1,weight1,position2,weight2,position3,weight3,position4,weight4,ells=ells,nthreads=nthreads)
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 
 def comp_3pcf_multi_radial():
@@ -275,9 +229,8 @@ test_multi()
 test_scos()
 test_3pcf_multi()
 test_3pcf_multi_double_los()
-test_3pcf_multi_radial()
 test_2pcf_multi_radial()
 test_4pcf_multi_radial()
 comp_3pcf_multi_radial()
-test_4pcf_multi()
+
 

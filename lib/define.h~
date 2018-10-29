@@ -51,6 +51,11 @@ typedef struct {
 	size_t *visit_max;
 } Box; //cell
 
+typedef struct {
+	size_t n_boxes;
+	Box* boxes;
+} Mesh;
+
 //Catalog
 typedef struct {
 	size_t n_obj;
@@ -71,6 +76,6 @@ CORR_TYPE corr_type;
 MULTI_TYPE multi_type;
 LOS_TYPE los_type;
 Bin bin_main,bin_aux,bin_radial;
-size_t n_boxes,dim_box,dim_weight,dim_pos,n_ells;
+size_t dim_box,dim_weight,dim_pos,n_ells;
 
 #endif //_CUTE_DEFINE_
