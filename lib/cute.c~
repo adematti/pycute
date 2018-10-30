@@ -34,6 +34,7 @@
 #include "common.h"
 
 static Catalog cats[MAX_CATS] = {{.n_obj=0},{.n_obj=0},{.n_obj=0},{.n_obj=0}};
+static Pole poles[MAX_POLES] = {{.n_ells=0},{.n_ells=0}};
 static Mesh meshs[MAX_CATS];
 static size_t n_cats = MAX_CATS;
 
@@ -59,6 +60,7 @@ void set_num_threads(size_t n_threads)
 
 void print_bin(char* mode)
 {
+	printf("*** Binning\n");
 	Bin bin=bin_main;
 	if (!strcmp(mode,"aux")) bin=bin_aux;
 	else if (!strcmp(mode,"radial")) bin=bin_radial;
@@ -80,7 +82,6 @@ void set_bin(char* mode,histo_t* edges,size_t n_bin,char* type)
 	bin.log10max=0.;
 	bin.edges=NULL;
 
-	printf("*** Binning\n");
 	if (!strcmp(type,"lin")) {
 		bin.type=BIN_LIN;
 		bin.step=(bin.max-bin.min)/n_bin;
@@ -99,7 +100,7 @@ void set_bin(char* mode,histo_t* edges,size_t n_bin,char* type)
 	else {
 		bin.type=BIN_LIN;
 		bin.step=(bin.max-bin.min)/n_bin;
-		fprintf(stderr," - Invalid main-binning type. Choices:lin, log or custom.\n");
+		fprintf(stderr," - invalid main-binning type. Choices:lin, log or custom.\n");
 		fprintf(stderr," - I choose linear binning.\n");
 	}
 	if (!strcmp(mode,"main")) bin_main=bin;
@@ -107,7 +108,7 @@ void set_bin(char* mode,histo_t* edges,size_t n_bin,char* type)
 	else if (!strcmp(mode,"radial")) bin_radial=bin;
 	else {
 		bin_main=bin;
-		fprintf(stderr," - Invalid binning. Choices: main, aux, radial.\n");
+		fprintf(stderr," - invalid binning. Choices: main, aux, radial.\n");
 		fprintf(stderr," - I choose main.\n");
 	}
 #ifdef _VERBOSE
@@ -130,7 +131,7 @@ void set_corr_type(char* type)
 	else if (!strcmp(type,"s-cos")) corr_type=CORR_SCOS;
 	else {
 		corr_type=CORR_SMU;
-		fprintf(stderr," - Invalid correlation type. Choices: s-mu, angular or s-cos.\n");
+		fprintf(stderr," - invalid correlation type. Choices: s-mu, angular or s-cos.\n");
 		fprintf(stderr," - I choose s-mu.\n");
 	}
 #ifdef _VERBOSE
@@ -138,45 +139,47 @@ void set_corr_type(char* type)
 #endif //_VERBOSE
 }
 
-void print_multi_type()
+void print_pole(Pole pole)
 {
+	printf("*** Multipoles\n");
 	size_t ill;
-	if (multi_type==MULTI_ALL) {
+	if (pole.type==MULTI_ALL) {
 		printf(" - multi-type: all\n");
 		printf(" - ells:");
-		for (ill=0;ill<n_ells;ill++) printf(" %zu",ill);
+		for (ill=0;ill<pole.n_ells;ill++) printf(" %zu",ill);
 		printf("\n");
 	}
-	if (multi_type==MULTI_EVEN) {
+	if (pole.type==MULTI_EVEN) {
 		printf(" - multi-type: even\n");
 		printf(" - ells:");
-		for (ill=0;ill<n_ells;ill++) printf(" %zu",2*ill);
+		for (ill=0;ill<pole.n_ells;ill++) printf(" %zu",2*ill);
 		printf("\n");
 	}
-	if (multi_type==MULTI_ODD) {
+	if (pole.type==MULTI_ODD) {
 		printf(" - multi-type: odd\n");
 		printf(" - ells:");
-		for (ill=0;ill<n_ells;ill++) printf(" %zu",2*ill+1);
+		for (ill=0;ill<pole.n_ells;ill++) printf(" %zu",2*ill+1);
 		printf("\n");
 	}
 }
 
-void set_multi_type(char* type,size_t n_ells_)
+void set_pole(size_t num,MULTI_TYPE type,size_t n_ells)
 {
-	if (!strcmp(type,"all")) multi_type=MULTI_ALL;
-	else if (!strcmp(type,"even")) multi_type=MULTI_EVEN;
-	else if (!strcmp(type,"odd")) multi_type=MULTI_ODD;
-	else {
-		multi_type=MULTI_ALL;
-		fprintf(stderr," - Invalid multipole type. Choices: all, even or odd.\n");
-		fprintf(stderr," - I choose all.\n");
-	}
-	corr_type=CORR_SMU;
-	n_ells = MIN(n_ells_,MAX_ELLS);
+	Pole pole;
+	pole.type = type;
+	pole.n_ells = n_ells;
+	poles[num-1] = pole;
 #ifdef _VERBOSE
-	print_multi_type();
-#endif //_VERBOSE
+	print_pole(pole);
+#endif //_VERBOSE	
 }
+
+void clear_poles()
+{
+	size_t ipole;
+	for (ipole=0;ipole<MAX_POLES;ipole++) poles[ipole].n_ells = 0;
+}
+
 
 void print_los_type()
 {
@@ -190,7 +193,7 @@ void set_los_type(char* type)
 	else if (!strcmp(type,"endpoint")) los_type=LOS_ENDPOINT;
 	else {
 		los_type=LOS_MIDPOINT;
-		fprintf(stderr," - Invalid los type. Choices: middle or endpoint.\n");
+		fprintf(stderr," - invalid los type. Choices: middle or endpoint.\n");
 		fprintf(stderr," - I choose middle.\n");
 	}
 #ifdef _VERBOSE
@@ -218,9 +221,11 @@ void print_normalize(_Bool normalize)
 
 void set_catalog(size_t num,histo_t *p,histo_t *w,size_t n,size_t dim_b,size_t dim_w)
 {	
-	cats[num-1].pos=p;
-	cats[num-1].weight=w;
-	cats[num-1].n_obj=n;
+	Catalog cat;
+	cat.pos = p;
+	cat.weight = w;
+	cat.n_obj = n;
+	cats[num-1] = cat;
 	
 	dim_box=dim_b;
 	dim_pos=dim_box;
@@ -300,7 +305,7 @@ void run_2pcf_main_aux(histo_t* meanmain,histo_t* meanaux,histo_t* count,char* c
 	free_meshs(meshs,n_cats);
 }
 
-void run_2pcf_multi(histo_t *meanmain,histo_t *count,size_t n_ells,char* multi_type,char *los_type,size_t n_threads)
+void run_2pcf_multi(histo_t *meanmain,histo_t *count,char *los_type,size_t n_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -308,15 +313,14 @@ void run_2pcf_multi(histo_t *meanmain,histo_t *count,size_t n_ells,char* multi_t
 	printf("*** 2-point correlation function (multi)\n");
 	print_catalogs();
 #endif //_VERBOSE
-	set_multi_type(multi_type,n_ells);
 	set_los_type(los_type);
 	set_num_threads(n_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	if (n_cats==1) auto_2pcf_multi(meshs[0],meanmain,count);
-	else cross_2pcf_multi(meshs[0],meshs[1],meanmain,count);	
+	if (n_cats==1) auto_2pcf_multi(meshs[0],meanmain,count,poles[0]);
+	else cross_2pcf_multi(meshs[0],meshs[1],meanmain,count,poles[0]);	
 #ifdef _DEBUG
 	if (n_cats==1) write_histo(bin_main.n_bin*n_ells,count,"debug_auto.dat");
 	else write_histo(bin_main.n_bin*n_ells,count,"debug_12.dat");
@@ -329,21 +333,7 @@ void run_2pcf_multi(histo_t *meanmain,histo_t *count,size_t n_ells,char* multi_t
 	free_meshs(meshs,n_cats);
 }
 
-/*
-void run_3pcf_multi(histo_t *count,size_t n_ells,char* multi_type,char *los_type,size_t n_threads)
-{
-#ifdef _VERBOSE
-	print_catalogs();
-#endif //_VERBOSE
-	printf("*** 3-point correlation function multipoles\n");
-	set_multi_type(multi_type,n_ells);
-	set_los_type(los_type);
-	set_num_threads(n_threads);
-	cross_3pcf_multi(cats,count);
-}
-*/
-
-void run_3pcf_multi(histo_t *count,size_t n_ells,char* multi_type,char *los_type,size_t n_threads)
+void run_3pcf_multi(histo_t *count,char *los_type,size_t n_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -351,14 +341,13 @@ void run_3pcf_multi(histo_t *count,size_t n_ells,char* multi_type,char *los_type
 	print_catalogs();
 	printf("*** 3-point correlation function multipoles\n");
 #endif //_VERBOSE
-	set_multi_type(multi_type,n_ells);
 	set_los_type(los_type);
 	set_num_threads(n_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	cross_3pcf_multi(meshs,n_cats,count);
+	cross_3pcf_multi(meshs,n_cats,count,poles);
 #ifdef _VERBOSE
 	printf("*** Cleaning up\n");
 	timer(1);
@@ -367,7 +356,7 @@ void run_3pcf_multi(histo_t *count,size_t n_ells,char* multi_type,char *los_type
 	free_meshs(meshs,n_cats);
 }
 
-void run_3pcf_multi_double_los(histo_t *count,size_t n_ells,char* multi_type,char *los_type,size_t n_threads)
+void run_3pcf_multi_double_los(histo_t *count,char *los_type,size_t n_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -375,14 +364,13 @@ void run_3pcf_multi_double_los(histo_t *count,size_t n_ells,char* multi_type,cha
 	print_catalogs();
 	printf("*** 3-point correlation function multipoles with double los for cat2\n");
 #endif //_VERBOSE
-	set_multi_type(multi_type,n_ells);
 	set_los_type(los_type);
 	set_num_threads(n_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	cross_3pcf_multi_double_los(meshs,n_cats,count);
+	cross_3pcf_multi_double_los(meshs,n_cats,count,poles);
 #ifdef _VERBOSE
 	printf("*** Cleaning up\n");
 	timer(1);
@@ -391,7 +379,7 @@ void run_3pcf_multi_double_los(histo_t *count,size_t n_ells,char* multi_type,cha
 	free_meshs(meshs,n_cats);
 }
 
-void run_2pcf_multi_radial(histo_t *count,size_t n_ells,char* multi_type,_Bool normalize,char *los_type,size_t n_threads)
+void run_2pcf_multi_radial(histo_t *count,_Bool normalize,char *los_type,size_t n_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -399,14 +387,13 @@ void run_2pcf_multi_radial(histo_t *count,size_t n_ells,char* multi_type,_Bool n
 	print_catalogs();
 	printf("*** 2-point radial correlation function multipoles\n");
 #endif //_VERBOSE
-	set_multi_type(multi_type,n_ells);
 	set_los_type(los_type);
 	set_num_threads(n_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	cross_2pcf_multi_radial(meshs[0],meshs[1],count,normalize);
+	cross_2pcf_multi_radial(meshs[0],meshs[1],count,poles[0],normalize);
 #ifdef _VERBOSE
 	printf("*** Cleaning up\n");
 	timer(1);
@@ -415,7 +402,7 @@ void run_2pcf_multi_radial(histo_t *count,size_t n_ells,char* multi_type,_Bool n
 	free_meshs(meshs,n_cats);
 }
 
-void run_4pcf_multi_radial(histo_t *count,size_t n_ells,char* multi_type,_Bool normalize,char *los_type,size_t n_threads)
+void run_4pcf_multi_radial(histo_t *count,_Bool normalize,char *los_type,size_t n_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -423,14 +410,13 @@ void run_4pcf_multi_radial(histo_t *count,size_t n_ells,char* multi_type,_Bool n
 	print_catalogs();
 	printf("*** 2-point radial correlation function multipoles\n");
 #endif //_VERBOSE
-	set_multi_type(multi_type,n_ells);
 	set_los_type(los_type);
 	set_num_threads(n_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	cross_4pcf_multi_radial(meshs,count,normalize);
+	cross_4pcf_multi_radial(meshs,count,poles,normalize);
 #ifdef _VERBOSE
 	printf("*** Cleaning up\n");
 	timer(1);

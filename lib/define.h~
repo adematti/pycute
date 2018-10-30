@@ -29,6 +29,7 @@
 //#define ABS(a)   (((a) < 0) ? -(a) : (a)) //Absolute value
 #define MAX_ELLS 9
 #define MAX_CATS 4
+#define MAX_POLES 2
 
 #ifdef _FLOAT32
 typedef float histo_t;
@@ -72,10 +73,15 @@ typedef struct {
 	BIN_TYPE type;  
 } Bin; //Bin
 
+typedef struct {
+	size_t n_ells;
+	size_t ells[MAX_ELLS];
+	MULTI_TYPE type;  
+} Pole; //Bin
+
 CORR_TYPE corr_type;
-MULTI_TYPE multi_type;
 LOS_TYPE los_type;
 Bin bin_main,bin_aux,bin_radial;
-size_t dim_box,dim_weight,dim_pos,n_ells;
+size_t dim_box,dim_weight,dim_pos;
 
 #endif //_CUTE_DEFINE_

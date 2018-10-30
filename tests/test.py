@@ -221,7 +221,7 @@ save_reference_3pcf_multi()
 save_reference_2pcf_multi_radial()
 save_reference_3pcf_multi_radial()
 """
-
+"""
 test_s()
 test_angular()
 test_smu()
@@ -232,5 +232,7 @@ test_3pcf_multi_double_los()
 test_2pcf_multi_radial()
 test_4pcf_multi_radial()
 comp_3pcf_multi_radial()
+"""
 
+test_multi()
 

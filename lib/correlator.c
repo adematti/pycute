@@ -590,30 +590,30 @@ void auto_2pcf_main_aux(Mesh mesh1,histo_t meanmain[],histo_t meanaux[],histo_t 
 	}
 }
 
-void legendre(histo_t fast_dist,histo_t leg[]) {
+void legendre(histo_t fast_dist,histo_t leg[],MULTI_TYPE type) {
 	
-	if (multi_type==MULTI_ALL) {
+	if (type==MULTI_ALL) {
 		histo_t dist_aux=get_distance_aux(fast_dist);
 		//printf("%.3f %.3f  ",dist_aux,fast_dist);
 		//if (dist_aux>0) printf("%.3f  ",dist_aux);
 		legendre_all(dist_aux,my_abs(fast_dist),leg);
 	}
-	else if (multi_type==MULTI_EVEN) {
+	else if (type==MULTI_EVEN) {
 		//printf("%.3f ",fast_dist);
 		legendre_even(my_abs(fast_dist),leg);
 	}
-	else if (multi_type==MULTI_ODD) {
+	else if (type==MULTI_ODD) {
 		histo_t dist_aux=get_distance_aux(fast_dist);
 		legendre_odd(dist_aux,my_abs(fast_dist),leg);
 	}
 }
 
-void cross_2pcf_multi(Mesh mesh1,Mesh mesh2,histo_t meanmain[], histo_t count[])
+void cross_2pcf_multi(Mesh mesh1,Mesh mesh2,histo_t meanmain[],histo_t count[],Pole pole)
 {
 	histo_t *threadmeanmain,*threadcount;
 	set_fast_distance_main_limit();
 	set_fast_distance_aux_limit();
-	size_t n_bin_tot=bin_main.n_bin*n_ells;
+	size_t n_bin_tot=bin_main.n_bin*pole.n_ells;
 	size_t ibin;
 	histo_t leg[MAX_ELLS];
 
@@ -623,13 +623,15 @@ void cross_2pcf_multi(Mesh mesh1,Mesh mesh2,histo_t meanmain[], histo_t count[])
 	}
 
 #pragma omp parallel default(none)				\
-  shared(mesh1,mesh2,meanmain,count,n_bin_tot,bin_main,bin_aux,dim_pos,dim_weight,n_ells) private(threadmeanmain,threadcount,leg)
+  shared(mesh1,mesh2,meanmain,count,n_bin_tot,bin_main,bin_aux,dim_pos,dim_weight,pole) private(threadmeanmain,threadcount,leg)
 	{
 		size_t n_boxes1 = mesh1.n_boxes;
 		Box *boxes1 = mesh1.boxes;
 		size_t n_boxes2 = mesh2.n_boxes;
 		Box *boxes2 = mesh2.boxes;		
 		size_t ibin,ibox1;
+		MULTI_TYPE multi_type = pole.type;
+		size_t n_ells = pole.n_ells;
 		threadmeanmain=(histo_t *) malloc(n_bin_tot*sizeof(histo_t));
 		threadcount=(histo_t *) malloc(n_bin_tot*sizeof(histo_t));
 
@@ -659,7 +661,7 @@ void cross_2pcf_multi(Mesh mesh1,Mesh mesh2,histo_t meanmain[], histo_t count[])
 								if (visit_aux(fast_dist_aux)) {
 									histo_t dist_main=get_distance_main(fast_dist_main);
 									histo_t weight=get_weight(weight1,&(box2.weight[dim_weight*iobj2]));
-									legendre(fast_dist_aux,leg);
+									legendre(fast_dist_aux,leg,multi_type);
 									size_t ill;
 									for(ill=0;ill<n_ells;ill++) {
 										histo_t w=weight*leg[ill];
@@ -689,13 +691,13 @@ void cross_2pcf_multi(Mesh mesh1,Mesh mesh2,histo_t meanmain[], histo_t count[])
 }
 
 
-void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[], histo_t count[])
+void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[],histo_t count[],Pole pole)
 {
 
 	histo_t *threadmeanmain,*threadcount;
 	set_fast_distance_main_limit();
 	set_fast_distance_aux_limit();
-	size_t n_bin_tot=bin_main.n_bin*n_ells;
+	size_t n_bin_tot=bin_main.n_bin*pole.n_ells;
 	size_t ibin;
 	histo_t leg[MAX_ELLS];
 
@@ -705,11 +707,13 @@ void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[], histo_t count[])
 	}
 
 #pragma omp parallel default(none)				\
-  shared(mesh1,meanmain,count,n_bin_tot,bin_main,bin_aux,dim_pos,dim_weight,n_ells) private(threadmeanmain,threadcount,leg)
+  shared(mesh1,meanmain,count,n_bin_tot,bin_main,bin_aux,dim_pos,dim_weight,pole) private(threadmeanmain,threadcount,leg)
 	{
 		size_t n_boxes1 = mesh1.n_boxes;
-		Box *boxes1 = mesh1.boxes;	
+		Box *boxes1 = mesh1.boxes;
 		size_t ibin,ibox1;
+		MULTI_TYPE multi_type = pole.type;
+		size_t n_ells = pole.n_ells;
 		threadmeanmain=(histo_t *) malloc(bin_main.n_bin*sizeof(histo_t));
 		threadcount=(histo_t *) malloc(n_bin_tot*sizeof(histo_t));
 
@@ -735,7 +739,7 @@ void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[], histo_t count[])
 						if (visit_aux(fast_dist_aux)) {
 							histo_t dist_main=get_distance_main(fast_dist_main);
 							histo_t weight=get_weight(weight1,&(box1.weight[dim_weight*iobj2]));
-							legendre(fast_dist_aux,leg);
+							legendre(fast_dist_aux,leg,multi_type);
 							size_t ill;
 							for(ill=0;ill<n_ells;ill++) {
 								histo_t w=weight*leg[ill];
@@ -764,7 +768,7 @@ void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[], histo_t count[])
 								if (visit_aux(fast_dist_aux)) {
 									histo_t dist_main=get_distance_main(fast_dist_main);
 									histo_t weight=get_weight(weight1,&(box2.weight[dim_weight*iobj2]));
-									legendre(fast_dist_aux,leg);
+									legendre(fast_dist_aux,leg,multi_type);
 									size_t ill;
 									for(ill=0;ill<n_ells;ill++) {
 										histo_t w=weight*leg[ill];
@@ -793,14 +797,14 @@ void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[], histo_t count[])
 	for (ibin=0;ibin<n_bin_tot;ibin++) meanmain[ibin]/=count[ibin];
 }
 
-void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[])
+void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[],Pole *poles)
 {
 	set_fast_distance_main_limit();
 	set_fast_distance_aux_limit();
-	size_t n_bin_tot = bin_main.n_bin*bin_main.n_bin*n_ells*n_ells;
-	size_t n_bin_sec = bin_main.n_bin*n_ells;
 	size_t ibin,ibin2,ibin3,ill2,ill3;
 	size_t n_sec = n_meshs - 1;
+	size_t n_bin_sec[2] = {bin_main.n_bin*poles[0].n_ells,bin_main.n_bin*poles[1].n_ells};
+	size_t n_bin_tot = (n_sec == 2) ? n_bin_sec[0]*n_bin_sec[1] : n_bin_sec[0]*n_bin_sec[0];
 	histo_t leg[MAX_ELLS];
 	histo_t* countsec[2];
 	//printf("nells %zu\n",n_ells);
@@ -808,12 +812,12 @@ void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[])
 	histo_t* threadcount;
 	
 #pragma omp parallel default(none)				\
-  shared(count,meshs,n_sec,n_bin_tot,n_bin_sec,bin_main,dim_pos,dim_weight,n_ells) private(countsec,threadcount,leg)
+  shared(count,meshs,n_sec,n_bin_tot,n_bin_sec,bin_main,dim_pos,dim_weight,poles) private(countsec,threadcount,leg)
 	{
 		size_t isec,ibin,ibox1;
 		size_t n_boxes1 = meshs[0].n_boxes;
 		Box *boxes1 = meshs[0].boxes;
-		for (isec=0;isec<n_sec;isec++) countsec[isec] = (histo_t*) malloc(n_bin_sec*sizeof(histo_t));
+		for (isec=0;isec<n_sec;isec++) countsec[isec] = (histo_t*) malloc(n_bin_sec[isec]*sizeof(histo_t));
 		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
 		for(ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0.;
 		
@@ -830,12 +834,14 @@ void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[])
 				for (isec=0;isec<n_sec;isec++) {
 					histo_t *count2 = countsec[isec];
 					size_t ibin2;
-					for (ibin2=0;ibin2<n_bin_sec;ibin2++) count2[ibin2]=0.;
+					for (ibin2=0;ibin2<n_bin_sec[isec];ibin2++) count2[ibin2]=0.;
 				}
 				for (isec=0;isec<n_sec;isec++) {
 					size_t n_boxes2 = meshs[isec+1].n_boxes;
 					Box *boxes2 = meshs[isec+1].boxes;
 					histo_t *count2 = countsec[isec];
+					MULTI_TYPE multi_type2 = poles[isec].type;
+					size_t n_ells2 = poles[isec].n_ells;
 					size_t ibox2;
 					for(ibox2=0;ibox2<n_boxes2;ibox2++) {
 						Box box2=boxes2[ibox2];
@@ -850,9 +856,9 @@ void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[])
 									if (visit_aux(fast_dist_aux)) {
 										size_t ibin = get_bin_index(get_distance_main(fast_dist_main),bin_main);
 										histo_t weight=box2.weight[dim_weight*iobj2];
-										legendre(fast_dist_aux,leg);
+										legendre(fast_dist_aux,leg,multi_type2);
 										size_t ill2;
-										for (ill2=0;ill2<n_ells;ill2++) count2[ill2+ibin*n_ells] += leg[ill2]*weight;
+										for (ill2=0;ill2<n_ells2;ill2++) count2[ill2+ibin*n_ells2] += leg[ill2]*weight;
 									}
 								}
 							}
@@ -862,16 +868,18 @@ void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[])
 				if (n_sec==1) {
 					histo_t *count2 = countsec[0];
 					histo_t *count3 = countsec[0];
+					size_t n_ells2 = poles[0].n_ells;
+					size_t n_ells3 = n_ells2;
 					size_t ibin2;
 					for (ibin2=0;ibin2<bin_main.n_bin;ibin2++) {
-						if (count2[ibin2*n_ells]!=0.) {
+						if (count2[ibin2*n_ells2]!=0.) {
 							size_t ibin3;
 							for (ibin3=0;ibin3<bin_main.n_bin;ibin3++) {
-								if (count3[ibin3*n_ells]!=0.) {
+								if (count3[ibin3*n_ells3]!=0.) {
 									size_t ill2,ill3;
-									for (ill2=0;ill2<n_ells;ill2++) {
-										for (ill3=ill2;ill3<n_ells;ill3++) {
-											threadcount[ill3+n_ells*(ill2+n_ells*(ibin3+bin_main.n_bin*ibin2))] += weight1*count2[ill2+ibin2*n_ells]*count3[ill3+ibin3*n_ells];
+									for (ill2=0;ill2<n_ells2;ill2++) {
+										for (ill3=ill2;ill3<n_ells3;ill3++) {
+											threadcount[ill3+n_ells3*(ill2+n_ells2*(ibin3+bin_main.n_bin*ibin2))] += weight1*count2[ill2+ibin2*n_ells2]*count3[ill3+ibin3*n_ells3];
 										}
 									}
 								}
@@ -882,16 +890,18 @@ void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[])
 				else {
 					histo_t *count2 = countsec[0];
 					histo_t *count3 = countsec[1];
+					size_t n_ells2 = poles[0].n_ells;
+					size_t n_ells3 = poles[1].n_ells;
 					size_t ibin2;
 					for (ibin2=0;ibin2<bin_main.n_bin;ibin2++) {
-						if (count2[ibin2*n_ells]!=0.) {
+						if (count2[ibin2*n_ells2]!=0.) {
 							size_t ibin3;
 							for (ibin3=0;ibin3<bin_main.n_bin;ibin3++) {
-								if (count3[ibin3*n_ells]!=0.) {
+								if (count3[ibin3*n_ells3]!=0.) {
 									size_t ill2,ill3;
-									for (ill2=0;ill2<n_ells;ill2++) {
-										for (ill3=0;ill3<n_ells;ill3++) {
-											threadcount[ill3+n_ells*(ill2+n_ells*(ibin3+bin_main.n_bin*ibin2))] += weight1*count2[ill2+ibin2*n_ells]*count3[ill3+ibin3*n_ells];
+									for (ill2=0;ill2<n_ells2;ill2++) {
+										for (ill3=0;ill3<n_ells3;ill3++) {
+											threadcount[ill3+n_ells3*(ill2+n_ells2*(ibin3+bin_main.n_bin*ibin2))] += weight1*count2[ill2+ibin2*n_ells2]*count3[ill3+ibin3*n_ells3];
 										}
 									}
 								}
@@ -909,11 +919,13 @@ void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[])
 		}
 	} //end omp parallel
 	if (n_sec==1) {
+		size_t n_ells2 = poles[0].n_ells;
+		size_t n_ells3 = n_ells2;
 		for (ibin2=0;ibin2<bin_main.n_bin;ibin2++) {
 			for (ibin3=0;ibin3<bin_main.n_bin;ibin3++) {
-				for (ill2=0;ill2<n_ells;ill2++) {
+				for (ill2=0;ill2<n_ells2;ill2++) {
 					for (ill3=0;ill3<ill2;ill3++) {
-						count[ill3+n_ells*(ill2+n_ells*(ibin3+bin_main.n_bin*ibin2))] = count[ill2+n_ells*(ill3+n_ells*(ibin2+bin_main.n_bin*ibin3))];
+						count[ill3+n_ells3*(ill2+n_ells2*(ibin3+bin_main.n_bin*ibin2))] = count[ill2+n_ells2*(ill3+n_ells3*(ibin2+bin_main.n_bin*ibin3))];
 					}
 				}
 			}
@@ -921,16 +933,14 @@ void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[])
 	}
 }
 
-
-
-void cross_3pcf_multi_double_los(Mesh* meshs,size_t n_meshs,histo_t count[])
+void cross_3pcf_multi_double_los(Mesh* meshs,size_t n_meshs,histo_t count[],Pole *poles)
 {
 	set_fast_distance_main_limit();
 	set_fast_distance_aux_limit();
-	size_t n_bin_tot = bin_main.n_bin*bin_main.n_bin*n_ells*n_ells;
-	size_t n_bin_sec = bin_main.n_bin*n_ells;
 	size_t ibin;
 	size_t n_sec = n_meshs - 1;
+	size_t n_bin_sec[2] = {bin_main.n_bin*poles[0].n_ells,bin_main.n_bin*poles[1].n_ells};
+	size_t n_bin_tot = (n_sec == 2) ? n_bin_sec[0]*n_bin_sec[1] : n_bin_sec[0]*n_bin_sec[0];
 	histo_t leg[MAX_ELLS];
 	histo_t* countsec[2];
 	//printf("nells %zu\n",n_ells);
@@ -938,12 +948,12 @@ void cross_3pcf_multi_double_los(Mesh* meshs,size_t n_meshs,histo_t count[])
 	histo_t* threadcount;
 	
 #pragma omp parallel default(none)				\
-  shared(count,meshs,n_sec,n_bin_tot,n_bin_sec,bin_main,dim_pos,dim_weight,n_ells) private(countsec,threadcount,leg)
+  shared(count,meshs,n_sec,n_bin_tot,n_bin_sec,bin_main,dim_pos,dim_weight,poles) private(countsec,threadcount,leg)
 	{
 		size_t isec,ibin,ibox1;
 		size_t n_boxes1 = meshs[0].n_boxes;
 		Box *boxes1 = meshs[0].boxes;
-		for (isec=0;isec<2;isec++) countsec[isec] = (histo_t*) malloc(n_bin_sec*sizeof(histo_t));
+		for (isec=0;isec<2;isec++) countsec[isec] = (histo_t*) malloc(n_bin_sec[isec]*sizeof(histo_t));
 		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
 		for(ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0.;
 		
@@ -960,13 +970,15 @@ void cross_3pcf_multi_double_los(Mesh* meshs,size_t n_meshs,histo_t count[])
 				for (isec=0;isec<2;isec++) {
 					histo_t *count2 = countsec[isec];
 					size_t ibin2;
-					for (ibin2=0;ibin2<n_bin_sec;ibin2++) count2[ibin2]=0.;
+					for (ibin2=0;ibin2<n_bin_sec[isec];ibin2++) count2[ibin2]=0.;
 				}
 				for (isec=0;isec<n_sec;isec++) {
 					size_t n_boxes2 = meshs[isec+1].n_boxes;
 					Box *boxes2 = meshs[isec+1].boxes;
 					histo_t *count2 = countsec[isec];
 					histo_t *count3 = countsec[1];
+					MULTI_TYPE multi_type2 = poles[isec].type;
+					size_t n_ells2 = poles[isec].n_ells;
 					size_t ibox2;
 					for(ibox2=0;ibox2<n_boxes2;ibox2++) {
 						Box box2=boxes2[ibox2];
@@ -982,15 +994,15 @@ void cross_3pcf_multi_double_los(Mesh* meshs,size_t n_meshs,histo_t count[])
 									if (visit_aux(fast_dist_aux_1) && visit_aux(fast_dist_aux_2)) {
 										size_t ibin = get_bin_index(get_distance_main(fast_dist_main),bin_main);
 										histo_t weight=box2.weight[dim_weight*iobj2];
-										legendre(fast_dist_aux_1,leg);
+										legendre(fast_dist_aux_1,leg,multi_type2);
 										size_t ill2;
-										for (ill2=0;ill2<n_ells;ill2++) count2[ill2+ibin*n_ells] += leg[ill2]*weight;
+										for (ill2=0;ill2<n_ells2;ill2++) count2[ill2+ibin*n_ells2] += leg[ill2]*weight;
 										if (n_sec==1) {
-											for (ill2=0;ill2<n_ells;ill2++) count3[ill2+ibin*n_ells] += leg[ill2]*weight;
+											for (ill2=0;ill2<n_ells2;ill2++) count3[ill2+ibin*n_ells2] += leg[ill2]*weight;
 										}
 										if (isec==0) {
-											legendre(fast_dist_aux_2,leg);
-											for (ill2=0;ill2<n_ells;ill2++) count2[ill2+ibin*n_ells] += leg[ill2]*weight;
+											legendre(fast_dist_aux_2,leg,multi_type2);
+											for (ill2=0;ill2<n_ells2;ill2++) count2[ill2+ibin*n_ells2] += leg[ill2]*weight;
 										}
 									}
 								}
@@ -1000,16 +1012,18 @@ void cross_3pcf_multi_double_los(Mesh* meshs,size_t n_meshs,histo_t count[])
 				}
 				histo_t *count2 = countsec[0];
 				histo_t *count3 = countsec[1];
+				size_t n_ells2 = poles[0].n_ells;
+				size_t n_ells3 = poles[1].n_ells;
 				size_t ibin2;
 				for (ibin2=0;ibin2<bin_main.n_bin;ibin2++) {
-					if (count2[ibin2*n_ells]!=0.) {
+					if (count2[ibin2*n_ells2]!=0.) {
 						size_t ibin3;
 						for (ibin3=0;ibin3<bin_main.n_bin;ibin3++) {
-							if (count3[ibin3*n_ells]!=0.) {
+							if (count3[ibin3*n_ells3]!=0.) {
 								size_t ill2,ill3;
-								for (ill2=0;ill2<n_ells;ill2++) {
-									for (ill3=0;ill3<n_ells;ill3++) {
-										threadcount[ill3+n_ells*(ill2+n_ells*(ibin3+bin_main.n_bin*ibin2))] += weight1*count2[ill2+ibin2*n_ells]*count3[ill3+ibin3*n_ells];
+								for (ill2=0;ill2<n_ells2;ill2++) {
+									for (ill3=0;ill3<n_ells3;ill3++) {
+										threadcount[ill3+n_ells3*(ill2+n_ells2*(ibin3+bin_main.n_bin*ibin2))] += weight1*count2[ill2+ibin2*n_ells2]*count3[ill3+ibin3*n_ells3];
 									}
 								}
 							}
@@ -1027,13 +1041,12 @@ void cross_3pcf_multi_double_los(Mesh* meshs,size_t n_meshs,histo_t count[])
 	} //end omp parallel
 }
 
-
-void cross_2pcf_multi_radial(Mesh mesh1, Mesh mesh2, histo_t count[],_Bool normalize)
+void cross_2pcf_multi_radial(Mesh mesh1, Mesh mesh2, histo_t count[],Pole pole,_Bool normalize)
 {
 	set_fast_distance_main_limit();
 	set_fast_distance_aux_limit();
 	set_fast_distance_radial_limit();
-	size_t n_bin_tot = bin_main.n_bin*bin_radial.n_bin*n_ells;
+	size_t n_bin_tot = bin_main.n_bin*bin_radial.n_bin*pole.n_ells;
 	size_t ibin;
 	histo_t leg[MAX_ELLS];
 	histo_t norm1=1.;
@@ -1073,9 +1086,11 @@ void cross_2pcf_multi_radial(Mesh mesh1, Mesh mesh2, histo_t count[],_Bool norma
 	histo_t* threadcount;
 	
 #pragma omp parallel default(none)				\
-  shared(count,boxes1,boxes2,n_boxes1,n_boxes2,n_bin_tot,bin_main,bin_radial,dim_pos,dim_weight,n_ells,normalize,norm1,norm2) private(threadcount,leg)
+  shared(count,boxes1,boxes2,n_boxes1,n_boxes2,n_bin_tot,bin_main,bin_radial,dim_pos,dim_weight,pole,normalize,norm1,norm2) private(threadcount,leg)
 	{
 		size_t ibin,ibox2;
+		MULTI_TYPE multi_type = pole.type;
+		size_t n_ells = pole.n_ells;
 		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
 		for (ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0.;
 		
@@ -1102,7 +1117,7 @@ void cross_2pcf_multi_radial(Mesh mesh1, Mesh mesh2, histo_t count[],_Bool norma
 								histo_t fast_dist_aux = get_fast_distance_aux(pos1,pos2);
 								if (visit_main(fast_dist_main) && visit_aux(fast_dist_aux)) {
 									ibin = ibinradial+bin_radial.n_bin*get_bin_index(get_distance_main(fast_dist_main),bin_main);
-									legendre(fast_dist_aux,leg);
+									legendre(fast_dist_aux,leg,multi_type);
 									histo_t weight=get_weight(&(box1.weight[dim_weight*iobj1]),weight2);
 									if (normalize) weight /= norm1*norm2[ibinradial];
 									size_t ill;
@@ -1123,23 +1138,26 @@ void cross_2pcf_multi_radial(Mesh mesh1, Mesh mesh2, histo_t count[],_Bool norma
 	free(norm2);
 }
 
-void cross_4pcf_multi_radial(Mesh *meshs, histo_t count[], _Bool normalize)
+void cross_4pcf_multi_radial(Mesh *meshs,histo_t count[],Pole *poles,_Bool normalize)
 {
     size_t n_bin_main = bin_main.n_bin;
     size_t n_bin_radial = bin_radial.n_bin;
-    size_t n_bin_2pcf = n_bin_main*n_bin_radial*n_ells;
-    size_t n_bin_tot = n_bin_main*n_bin_main*n_ells*n_ells;
-  	histo_t *count1 = (histo_t*) malloc(n_bin_2pcf*sizeof(histo_t));
-  	cross_2pcf_multi_radial(meshs[0],meshs[1],count1,0);
-  	histo_t *count2 = (histo_t*) malloc(n_bin_2pcf*sizeof(histo_t));
-  	cross_2pcf_multi_radial(meshs[2],meshs[3],count2,normalize);
+    size_t n_ells1 = poles[0].n_ells;
+    size_t n_ells2 = poles[1].n_ells;
+    size_t n_bin_2pcf1 = n_bin_main*n_bin_radial*n_ells1;
+    size_t n_bin_2pcf2 = n_bin_main*n_bin_radial*n_ells2;
+    size_t n_bin_tot = n_bin_main*n_bin_main*n_ells1*n_ells2;
+  	histo_t *count1 = (histo_t*) malloc(n_bin_2pcf1*sizeof(histo_t));
+  	cross_2pcf_multi_radial(meshs[0],meshs[1],count1,poles[0],0);
+  	histo_t *count2 = (histo_t*) malloc(n_bin_2pcf2*sizeof(histo_t));
+  	cross_2pcf_multi_radial(meshs[2],meshs[3],count2,poles[1],normalize);
 	
 	size_t ibin;
 	for (ibin=0;ibin<n_bin_tot;ibin++) count[ibin]=0.;
 	histo_t* threadcount;
 	
 #pragma omp parallel default(none)				\
-  shared(count,count1,count2,n_bin_tot,n_bin_main,n_bin_radial,n_ells) private(threadcount)
+  shared(count,count1,count2,n_bin_tot,n_bin_main,n_bin_radial,n_ells1,n_ells2) private(threadcount)
 	{
 		size_t ibin;
 		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
@@ -1150,14 +1168,14 @@ void cross_4pcf_multi_radial(Mesh *meshs, histo_t count[], _Bool normalize)
 			size_t ibin1;
 			for (ibin1=0;ibin1<n_bin_main;ibin1++) {
 				size_t ill1;
-				for (ill1=0;ill1<n_ells;ill1++) {
-					histo_t tmp1 = count1[ill1+(ibin+ibin1*n_bin_radial)*n_ells];
+				for (ill1=0;ill1<n_ells1;ill1++) {
+					histo_t tmp1 = count1[ill1+n_ells1*(ibin+ibin1*n_bin_radial)];
 					if (tmp1!=0.) {
 						size_t ibin2;
 						for (ibin2=0;ibin2<n_bin_main;ibin2++) {
 							size_t ill2;
-							for (ill2=0;ill2<n_ells;ill2++) {
-								threadcount[ill2+n_ells*(ill1+n_ells*(ibin2+n_bin_main*ibin1))] += tmp1*count2[ill2+(ibin+ibin2*n_bin_radial)*n_ells];
+							for (ill2=0;ill2<n_ells2;ill2++) {
+								threadcount[ill2+n_ells2*(ill1+n_ells1*(ibin2+n_bin_main*ibin1))] += tmp1*count2[ill2+n_ells2*(ibin+ibin2*n_bin_radial)];
 							}
 						}
 					}
