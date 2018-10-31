@@ -148,13 +148,13 @@ def test_smu():
 	
 	sedges_ = [0.,1.,3.,5.,6.]
 	pycute.set_2pcf_smu(sedges_,muedges,position1,weight1,nthreads=nthreads,sbinning='custom')
-	countsref = reference_smu(sedges_,muedges,position1,weight1,position2=position1,weight2=weight1)
+	countsref = reference_smu(sedges_,muedges,position1,weight1)
 	counts = pycute.counts + pycute.counts[:,::-1]
 	testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
 	
 	sedges_ = scipy.logspace(-2,1,10,base=10)
 	pycute.set_2pcf_smu(sedges_,muedges,position1,weight1,nthreads=nthreads,sbinning='log')
-	countsref = reference_smu(sedges_,muedges,position1,weight1,position2=position1,weight2=weight1)
+	countsref = reference_smu(sedges_,muedges,position1,weight1)
 	counts = pycute.counts + pycute.counts[:,::-1]
 	testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
 	

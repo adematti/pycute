@@ -170,7 +170,7 @@ def test_multi():
 		testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 		pycute.set_2pcf_multi(sedges,position1,weight1,ells=ells,nthreads=nthreads,muedges=[-1.,1.])
 		countsref = reference_multi(sedges,position1,weight1,ells=ells)
-		counts = (1 + (-1)**scipy.asarray(ells))*pycute.counts
+		counts = (1 + (-1)**scipy.asarray(pycute.ells))*pycute.counts
 		testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
 	
 def test_scos():
