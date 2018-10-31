@@ -90,7 +90,7 @@ size_t get_dichotomy_index(histo_t x,histo_t *tab,size_t min,size_t max)
 		size_t ind=(min+max)/2;
 		if (x<tab[ind]) return get_dichotomy_index(x,tab,min,ind);
 		else if (x>tab[ind]) return get_dichotomy_index(x,tab,ind,max);
-		else return ind;
+		return ind;
 	}
 }
 

@@ -183,13 +183,13 @@ void timer(size_t i)
 	else if(i==1) {
 		relend=time(NULL);
 		diff=(int)(difftime(relend,relbeg));
-		printf("    Relative time ellapsed %02d:%02d:%02d \n",
+		printf(" - relative time ellapsed %02d:%02d:%02d \n",
 		 diff/3600,(diff/60)%60,diff%60);
 	}    
 	else if(i==2) {
 		relend=time(NULL);
 		diff=(size_t)(difftime(relend,relbeg));
-		printf("    Relative time ellapsed %02d:%02d:%02d \n",
+		printf(" - relative time ellapsed %02d:%02d:%02d \n",
 		 diff/3600,(diff/60)%60,diff%60);
 		relbeg=time(NULL);
 	}
@@ -198,7 +198,7 @@ void timer(size_t i)
 	else if(i==5) {
 		absend=time(NULL);
 		diff=(size_t)(difftime(absend,absbeg));
-		printf("    Total time ellapsed %02d:%02d:%02d \n",
+		printf(" - total time ellapsed %02d:%02d:%02d \n",
 		 diff/3600,(diff/60)%60,diff%60);
 	}
 #endif //_HAVE_OMP

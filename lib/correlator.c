@@ -714,7 +714,7 @@ void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[],histo_t count[],Pole pole)
 		size_t ibin,ibox1;
 		MULTI_TYPE multi_type = pole.type;
 		size_t n_ells = pole.n_ells;
-		threadmeanmain=(histo_t *) malloc(bin_main.n_bin*sizeof(histo_t));
+		threadmeanmain=(histo_t *) malloc(n_bin_tot*sizeof(histo_t));
 		threadcount=(histo_t *) malloc(n_bin_tot*sizeof(histo_t));
 
 		for(ibin=0;ibin<n_bin_tot;ibin++) {
@@ -783,13 +783,13 @@ void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[],histo_t count[],Pole pole)
 				}	
 			}
 		} // end omp for
+
 #pragma omp critical
 		{
 			for (ibin=0;ibin<n_bin_tot;ibin++) {
 				meanmain[ibin]+=threadmeanmain[ibin];
 				count[ibin]+=threadcount[ibin];
 			}
-
 			free(threadmeanmain);
 			free(threadcount);
 		}

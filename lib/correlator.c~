@@ -714,7 +714,7 @@ void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[],histo_t count[],Pole pole)
 		size_t ibin,ibox1;
 		MULTI_TYPE multi_type = pole.type;
 		size_t n_ells = pole.n_ells;
-		threadmeanmain=(histo_t *) malloc(bin_main.n_bin*sizeof(histo_t));
+		threadmeanmain=(histo_t *) malloc(n_bin_tot*sizeof(histo_t));
 		threadcount=(histo_t *) malloc(n_bin_tot*sizeof(histo_t));
 
 		for(ibin=0;ibin<n_bin_tot;ibin++) {
@@ -783,18 +783,18 @@ void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[],histo_t count[],Pole pole)
 				}	
 			}
 		} // end omp for
+
 #pragma omp critical
 		{
 			for (ibin=0;ibin<n_bin_tot;ibin++) {
 				meanmain[ibin]+=threadmeanmain[ibin];
 				count[ibin]+=threadcount[ibin];
 			}
-
 			free(threadmeanmain);
 			free(threadcount);
 		}
 	} //end omp parallel
-	for (ibin=0;ibin<n_bin_tot;ibin++) meanmain[ibin]/=count[ibin];
+	//for (ibin=0;ibin<n_bin_tot;ibin++) meanmain[ibin]/=count[ibin];
 }
 
 void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[],Pole *poles)
@@ -1144,9 +1144,9 @@ void cross_4pcf_multi_radial(Mesh *meshs,histo_t count[],Pole *poles,_Bool norma
     size_t n_bin_radial = bin_radial.n_bin;
     size_t n_ells1 = poles[0].n_ells;
     size_t n_ells2 = poles[1].n_ells;
-    size_t n_bin_2pcf1 = n_bin_main*n_bin_radial*poles[0].n_ells;
-    size_t n_bin_2pcf2 = n_bin_main*n_bin_radial*poles[1].n_ells;
-    size_t n_bin_tot = n_bin_main*n_bin_main*poles[0].n_ells*poles[1].n_ells;
+    size_t n_bin_2pcf1 = n_bin_main*n_bin_radial*n_ells1;
+    size_t n_bin_2pcf2 = n_bin_main*n_bin_radial*n_ells2;
+    size_t n_bin_tot = n_bin_main*n_bin_main*n_ells1*n_ells2;
   	histo_t *count1 = (histo_t*) malloc(n_bin_2pcf1*sizeof(histo_t));
   	cross_2pcf_multi_radial(meshs[0],meshs[1],count1,poles[0],0);
   	histo_t *count2 = (histo_t*) malloc(n_bin_2pcf2*sizeof(histo_t));
@@ -1157,7 +1157,7 @@ void cross_4pcf_multi_radial(Mesh *meshs,histo_t count[],Pole *poles,_Bool norma
 	histo_t* threadcount;
 	
 #pragma omp parallel default(none)				\
-  shared(count,count1,count2,n_bin_tot,n_bin_main,n_bin_radial,n_ells) private(threadcount)
+  shared(count,count1,count2,n_bin_tot,n_bin_main,n_bin_radial,n_ells1,n_ells2) private(threadcount)
 	{
 		size_t ibin;
 		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
