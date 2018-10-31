@@ -165,12 +165,14 @@ def test_multi():
 	position1,weight1,position2,weight2 = load_catalogues()
 	pycute = PyCute()
 	for ells in [[0,1,2,3,4,5,6],[0,2,4,6,8],[1,3,5,7,9]]:
+		
 		pycute.set_2pcf_multi(sedges,position1,weight1,position2=position2,weight2=weight2,ells=ells,nthreads=nthreads,muedges=[-1.,1.])
 		countsref = reference_multi(sedges,position1,weight1,position2=position2,weight2=weight2,ells=ells)
 		testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
+		
 		pycute.set_2pcf_multi(sedges,position1,weight1,ells=ells,nthreads=nthreads,muedges=[-1.,1.])
 		countsref = reference_multi(sedges,position1,weight1,ells=ells)
-		counts = (1 + (-1)**scipy.asarray(pycute.ells))*pycute.counts
+		counts = (1 + (-1)**pycute.ells)*pycute.counts
 		testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
 	
 def test_scos():
