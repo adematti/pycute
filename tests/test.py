@@ -14,7 +14,7 @@ from pycute.pyCute import wrap_phi
 nthreads = 8
 ns = 10
 nspar = 6
-nmu = 4
+nmu = 7
 ells = [0,1,2,3,4]
 maxsize = 20.
 sedges = scipy.linspace(0.001,10.,ns+1)
@@ -172,7 +172,7 @@ def test_multi():
 		
 		pycute.set_2pcf_multi(sedges,position1,weight1,ells=ells,nthreads=nthreads,muedges=[-1.,1.])
 		countsref = reference_multi(sedges,position1,weight1,ells=ells)
-		counts = (1 + (-1)**pycute.ells)*pycute.counts
+		counts = (1 + (-1)**scipy.asarray(pycute.ells))*pycute.counts
 		testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
 	
 def test_scos():

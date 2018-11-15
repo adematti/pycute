@@ -31,19 +31,17 @@ LIBCPU = $(LGSL) -lm
 LIBGPU = $(LGSL) -L$(CUDADIR)/lib64 -lcudart -lpthread -lm
 
 #.c FILES
-CDEF = $(CUTE_LIB)/define.c
 CCOM = $(CUTE_LIB)/common.c
 CCORR = $(CUTE_LIB)/correlator.c
 CBOX = $(CUTE_LIB)/boxes.c
 CCUTE = $(CUTE_LIB)/cute.c
 
 #.o FILES
-ODEF = $(CUTE_LIB)/define.o
 OCOM = $(CUTE_LIB)/common.o
 OCORR = $(CUTE_LIB)/correlator.o
 OBOX = $(CUTE_LIB)/boxes.o
 OCUTE = $(CUTE_LIB)/cute.o
-OFILES = $(ODEF) $(OCOM) $(OCORR) $(OBOX) $(OCUTE)
+OFILES = $(OCOM) $(OCORR) $(OBOX) $(OCUTE)
 
 #FINAL GOAL
 EXE = CUTE
@@ -51,8 +49,6 @@ EXE = CUTE
 #RULES
 default : $(EXE)
 #RULE TO MAKE .o's FROM .c's
-$(ODEF) : $(CDEF) Makefile
-	$(COMPCPU) $(OPTCPU) -fPIC -c $< -o $@ $(INCLUDECOM) $(LIBCPU)
 $(OCOM) : $(CCOM) Makefile
 	$(COMPCPU) $(OPTCPU) -fPIC -c $< -o $@ $(INCLUDECOM) $(LIBCPU)
 $(OCORR) : $(CCORR) Makefile

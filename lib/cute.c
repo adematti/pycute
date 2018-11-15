@@ -41,18 +41,18 @@ static size_t n_cats = MAX_CATS;
 void print_num_threads()
 {
 	//Calculate number of threads
-	size_t n_threads=0;
+	size_t num_threads=0;
 #pragma omp parallel
 	{
 #pragma omp atomic
-		n_threads++;
+		num_threads++;
 	}
-	printf(" - using %zu threads\n",n_threads);
+	printf(" - using %zu threads\n",num_threads);
 }
 
-void set_num_threads(size_t n_threads)
+void set_num_threads(size_t num_threads)
 {
-	omp_set_num_threads(n_threads);
+	if (num_threads>0) omp_set_num_threads(num_threads);
 #ifdef _VERBOSE
 	print_num_threads();
 #endif //_VERBOSE
@@ -255,7 +255,7 @@ void clear_catalogs()
 	for (icat=0;icat<MAX_CATS;icat++) cats[icat].n_obj = 0;
 }
 
-void run_2pcf_main(histo_t* meanmain,histo_t* count,char* corr_type,size_t n_threads)
+void run_2pcf_main(histo_t* meanmain,histo_t* count,char* corr_type,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -264,7 +264,7 @@ void run_2pcf_main(histo_t* meanmain,histo_t* count,char* corr_type,size_t n_thr
 	print_catalogs();
 #endif //_VERBOSE
 	set_corr_type(corr_type);
-	set_num_threads(n_threads);
+	set_num_threads(num_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
@@ -283,7 +283,7 @@ void run_2pcf_main(histo_t* meanmain,histo_t* count,char* corr_type,size_t n_thr
 	free_meshs(meshs,n_cats);
 }
 
-void run_2pcf_main_aux(histo_t* meanmain,histo_t* meanaux,histo_t* count,char* corr_type,char *los_type,size_t n_threads)
+void run_2pcf_main_aux(histo_t* meanmain,histo_t* meanaux,histo_t* count,char* corr_type,char *los_type,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -293,7 +293,7 @@ void run_2pcf_main_aux(histo_t* meanmain,histo_t* meanaux,histo_t* count,char* c
 #endif //_VERBOSE
 	set_corr_type(corr_type);
 	set_los_type(los_type);
-	set_num_threads(n_threads);
+	set_num_threads(num_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
@@ -312,7 +312,7 @@ void run_2pcf_main_aux(histo_t* meanmain,histo_t* meanaux,histo_t* count,char* c
 	free_meshs(meshs,n_cats);
 }
 
-void run_2pcf_multi(histo_t *meanmain,histo_t *count,char *los_type,size_t n_threads)
+void run_2pcf_multi(histo_t *meanmain,histo_t *count,char *los_type,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -322,7 +322,7 @@ void run_2pcf_multi(histo_t *meanmain,histo_t *count,char *los_type,size_t n_thr
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
 	set_los_type(los_type);
-	set_num_threads(n_threads);
+	set_num_threads(num_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
@@ -341,7 +341,7 @@ void run_2pcf_multi(histo_t *meanmain,histo_t *count,char *los_type,size_t n_thr
 	free_meshs(meshs,n_cats);
 }
 
-void run_3pcf_multi(histo_t *count,char *los_type,size_t n_threads)
+void run_3pcf_multi(histo_t *count,char *los_type,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -351,7 +351,7 @@ void run_3pcf_multi(histo_t *count,char *los_type,size_t n_threads)
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
 	set_los_type(los_type);
-	set_num_threads(n_threads);
+	set_num_threads(num_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
@@ -365,17 +365,21 @@ void run_3pcf_multi(histo_t *count,char *los_type,size_t n_threads)
 	free_meshs(meshs,n_cats);
 }
 
-void run_3pcf_multi_double_los(histo_t *count,char *los_type,size_t n_threads)
+void run_3pcf_multi_double_los(histo_t *count,char *los_type,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
 #ifdef _VERBOSE
 	printf("*** 3-point correlation function multipoles with double los for cat2\n");
 	print_catalogs();
+	print_bin("main");
+	print_bin("aux");
+	print_pole(poles[0]);
+	print_pole(poles[1]);
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
 	set_los_type(los_type);
-	set_num_threads(n_threads);
+	set_num_threads(num_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
@@ -389,17 +393,18 @@ void run_3pcf_multi_double_los(histo_t *count,char *los_type,size_t n_threads)
 	free_meshs(meshs,n_cats);
 }
 
-void run_2pcf_multi_radial(histo_t *count,_Bool normalize,char *los_type,size_t n_threads)
+void run_2pcf_multi_radial(histo_t *count,_Bool normalize,char *los_type,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
 #ifdef _VERBOSE
 	printf("*** 2-point radial correlation function multipoles\n");
 	print_catalogs();
+	print_normalize(normalize);
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
 	set_los_type(los_type);
-	set_num_threads(n_threads);
+	set_num_threads(num_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
@@ -413,17 +418,23 @@ void run_2pcf_multi_radial(histo_t *count,_Bool normalize,char *los_type,size_t 
 	free_meshs(meshs,n_cats);
 }
 
-void run_4pcf_multi_radial(histo_t *count,_Bool normalize,char *los_type,size_t n_threads)
+void run_4pcf_multi_radial(histo_t *count,_Bool normalize,char *los_type,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
 #ifdef _VERBOSE
-	printf("*** 2-point radial correlation function multipoles\n");
+	printf("*** 4-point radial correlation function multipoles\n");
 	print_catalogs();
+	print_normalize(normalize);
+	print_bin("main");
+	print_bin("aux");
+	print_bin("radial");
+	print_pole(poles[0]);
+	print_pole(poles[1]);
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
 	set_los_type(los_type);
-	set_num_threads(n_threads);
+	set_num_threads(num_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);

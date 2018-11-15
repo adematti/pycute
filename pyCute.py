@@ -62,7 +62,7 @@ class PyCute(object):
 		self.cute.set_pole.argtypes = (ctypes.c_size_t,ctypes.c_char_p,ctypes.c_size_t)
 		self.cute.set_pole(num,multitype,nells)
 
-		return ells
+		return ells.tolist()
 
 	def set_2pcf_smu(self,sedges,muedges,position1,weight1,position2=None,weight2=None,sbinning='lin',mubinning='lin',ssize=None,musize=None,los='midpoint',nthreads=8):
 
@@ -194,6 +194,9 @@ class PyCute(object):
 		self.muedges = self.set_bin('aux',muedges,size=1)
 		if scipy.isscalar(ells[0]): ells = [ells,ells]
 		self.ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in [0,1]]
+		if (self.ells[-1] != self.ells[0]) and (position3 is None): 
+			position3 = position2
+			weight3 = weight2
 		
 		self.set_catalogues([position1,position2,position3],[weight1,weight2,weight3])
 		self.run_3pcf_multi(los=los,nthreads=nthreads)
@@ -216,6 +219,9 @@ class PyCute(object):
 		self.muedges = self.set_bin('aux',muedges,size=1)
 		if scipy.isscalar(ells[0]): ells = [ells,ells]
 		self.ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in [0,1]]
+		if (self.ells[-1] != self.ells[0]) and (position3 is None): 
+			position3 = position2
+			weight3 = weight2
 		
 		self.set_catalogues([position1,position2,position3],[weight1,weight2,weight3])
 		self.run_3pcf_multi_double_los(los=los,nthreads=nthreads)
