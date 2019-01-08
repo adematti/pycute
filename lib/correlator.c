@@ -120,26 +120,37 @@ static void set_fast_distance_main_limit()
 	fast_dist_main_max=get_inv_distance_main(bin_main.max);
 }
 
+
 static histo_t get_fast_distance_aux(histo_t *pos1,histo_t *pos2)
-{	
+{
 	size_t idim;
 	histo_t dist=0.;
 	histo_t norm1=0.;
 	histo_t norm2=0.;
 	if (corr_type==CORR_SMU) {
-		histo_t diff,los;
-		for(idim=0;idim<dim_pos;idim++){
-			diff=pos2[idim]-pos1[idim];
-			if (los_type==LOS_ENDPOINT) los=pos1[idim];
-			else los=pos2[idim]+pos1[idim];
-			los=pos2[idim]+pos1[idim];
-			norm1+=diff*diff;
-			norm2+=los*los;
-			dist+=diff*los;
+		histo_t diff;
+		if (los_type==LOS_X) {
+			for (idim=0;idim<dim_pos;idim++) {
+				diff=pos2[idim]-pos1[idim];
+				norm1+=diff*diff;
+			}
+			norm2=1.;
+			dist=pos2[0]-pos1[0];
+		}
+		else {
+			histo_t los;
+			for (idim=0;idim<dim_pos;idim++) {
+				diff=pos2[idim]-pos1[idim];
+				if (los_type==LOS_ENDPOINT) los=pos1[idim];
+				else los=pos2[idim]+pos1[idim];
+				norm1+=diff*diff;
+				norm2+=los*los;
+				dist+=diff*los;
+			}
 		}
 	}
 	else if (corr_type==CORR_SCOS) {
-		for(idim=0;idim<dim_pos;idim++){
+		for (idim=0;idim<dim_pos;idim++){
 			norm1+=pos1[idim]*pos1[idim];
 			norm2+=pos2[idim]*pos2[idim];
 			dist+=pos1[idim]*pos2[idim];
@@ -148,7 +159,6 @@ static histo_t get_fast_distance_aux(histo_t *pos1,histo_t *pos2)
 	//return dist*dist/(norm1*norm2);
 	return dist*my_abs(dist)/(norm1*norm2); //to get the sign
 }
-
 
 static histo_t get_distance_aux(histo_t fast_dist)
 {

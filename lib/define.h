@@ -39,7 +39,7 @@ typedef double histo_t;
 
 typedef enum {BIN_LIN, BIN_LOG, BIN_CUSTOM} BIN_TYPE;
 typedef enum {CORR_SMU, CORR_ANGULAR, CORR_SCOS} CORR_TYPE;
-typedef enum {LOS_MIDPOINT, LOS_ENDPOINT} LOS_TYPE;
+typedef enum {LOS_MIDPOINT, LOS_ENDPOINT, LOS_X} LOS_TYPE;
 typedef enum {MULTI_ALL, MULTI_EVEN, MULTI_ODD} MULTI_TYPE;
 
 //Box for 2PCFs

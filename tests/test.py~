@@ -72,21 +72,27 @@ def reference_angular(thetaedges,position1,weight1,position2=None,weight2=None):
 	ref = DDtheta_mocks(position2 is None,nthreads,scipy.asarray(thetaedges),position1[:,0],position1[:,1],weights1=weight1,RA2=RA2,DEC2=DEC2,weights2=weight2,output_thetaavg=False,weight_type='pair_product',verbose=verbose)
 	return ref['npairs']*ref['weightavg']
 	
-def reference_smu(sedges,muedges,position1,weight1,position2=None,weight2=None):
+def reference_smu(sedges,muedges,position1,weight1,position2=None,weight2=None,los='midpoint'):
 	"""Reference pair counting via kdcount"""
 	tree1 = correlate.points(position1,boxsize=None,weights=weight1)
 	if position2 is None: tree2 = tree1
 	else: tree2 = correlate.points(position2,boxsize=None,weights=weight2)
-	bins = correlate.RmuBinning(scipy.asarray(sedges),(len(muedges)-1),observer=(0,0,0),mu_min=muedges[0],mu_max=muedges[-1],absmu=False)
+	if los=='midpoint':
+		bins = correlate.RmuBinning(scipy.asarray(sedges),(len(muedges)-1),observer=(0,0,0),mu_min=muedges[0],mu_max=muedges[-1],absmu=False)
+	else:
+		bins = correlate.FlatSkyBinning(scipy.asarray(sedges),(len(muedges)-1),los='xyz'.index(los),mu_min=muedges[0],mu_max=muedges[-1],absmu=False)
 	pc = correlate.paircount(tree2,tree1,bins,np=0,usefast=False,compute_mean_coords=True)
 	return pc.sum1
 	
-def reference_multi(sedges,position1,weight1,position2=None,weight2=None,ells=[0,1,2,3,4]):
+def reference_multi(sedges,position1,weight1,position2=None,weight2=None,ells=[0,1,2,3,4],los='midpoint'):
 	"""Reference pair counting via kdcount"""
 	tree1 = correlate.points(position1,boxsize=None,weights=weight1)
 	if position2 is None: tree2 = tree1
 	else: tree2 = correlate.points(position2,boxsize=None,weights=weight2)
-	bins = correlate.MultipoleBinning(scipy.asarray(sedges),ells)
+	if los=='midpoint':
+		bins = correlate.MultipoleBinning(scipy.asarray(sedges),ells)
+	else:
+		bins = correlate.FlatSkyMultipoleBinning(scipy.asarray(sedges),ells,los='xyz'.index(los))
 	pc = correlate.paircount(tree2,tree1,bins,np=0,usefast=False,compute_mean_coords=True)
 	norm = 2*scipy.asarray(ells)+1
 	return pc.sum1.T/norm
@@ -131,7 +137,6 @@ def test_angular():
 	countsref = reference_angular(thetaedges_,position1,weight1)
 	testing.assert_allclose(countsref,2.*pycute.counts,rtol=1e-7,atol=1e-7)
 
-
 def test_smu():
 	position1,weight1,position2,weight2 = load_catalogues()
 	#weight1[:] = 1.; weight2[:] = 1.
@@ -158,6 +163,11 @@ def test_smu():
 	counts = pycute.counts + pycute.counts[:,::-1]
 	testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
 	
+	pycute.set_2pcf_smu(sedges,muedges,position1,weight1,nthreads=nthreads,los='x')
+	countsref = reference_smu(sedges,muedges,position1,weight1,position2=position1,weight2=weight1,los='x')
+	counts = pycute.counts + pycute.counts[:,::-1]
+	testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
+	
 	#ref = DDsmu(0,nthreads,pycute.sedges,muedges[-1],nmu,X1=position1[0],Y1=position1[1],Z1=position1[2],weights1=weight1,X2=position2[0],Y2=position2[1],Z2=position2[2],weights2=weight2,weight_type='pair_product',periodic=False,verbose=True,output_savg=True)
 	#countsref = (ref['npairs']*ref['weightavg']).reshape((len(sedges)-1,nmu//2))
 	
@@ -172,7 +182,7 @@ def test_multi():
 		
 		pycute.set_2pcf_multi(sedges,position1,weight1,ells=ells,nthreads=nthreads,muedges=[-1.,1.])
 		countsref = reference_multi(sedges,position1,weight1,ells=ells)
-		counts = (1 + (-1)**pycute.ells)*pycute.counts
+		counts = (1 + (-1)**scipy.asarray(pycute.ells))*pycute.counts
 		testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
 	
 def test_scos():
@@ -255,6 +265,25 @@ def comp_3pcf_multi_radial():
 		countstest = scipy.sum(pycute.counts[...,0,:],axis=0)
 		testing.assert_allclose(countsref,countstest,rtol=1e-7,atol=1e-7)
 
+def test_los():
+
+	position1,weight1,position2,weight2 = load_catalogues()
+	offset = 100.
+	position1 = position1 + offset
+	position2 = position2 + offset
+	pycute = PyCute()
+	sedges = scipy.linspace(0.001,100.,ns+1)
+	for ells in [[0,1,2,3,4,5,6],[0,2,4,6,8],[1,3,5,7,9]]:
+		
+		pycute.set_2pcf_multi(sedges,position1,weight1,position2=position2,weight2=weight2,ells=ells,nthreads=nthreads,muedges=[-1.,1.],los='midpoint')
+		middle = scipy.array(pycute.counts)
+		pycute.set_2pcf_multi(sedges,position1,weight1,position2=position2,weight2=weight2,ells=ells,nthreads=nthreads,muedges=[-1.,1.],los='endpoint')
+		print scipy.absolute(pycute.counts/middle-1.)[middle>0.].max()
+	
+	ells = [1,3,5,7,9]
+	pycute.set_2pcf_multi(sedges,position1,weight1,position2=position1,weight2=weight1,ells=ells,nthreads=nthreads,muedges=[-1.,1.],los='midpoint')
+	print pycute.counts
+
 
 """
 save_catalogues()
@@ -273,5 +302,5 @@ test_3pcf_multi_double_los()
 test_2pcf_multi_radial()
 test_4pcf_multi_radial()
 comp_3pcf_multi_radial()
-
+#test_los()
 

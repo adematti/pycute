@@ -75,7 +75,6 @@ typedef struct {
 
 typedef struct {
 	size_t n_ells;
-	size_t ells[MAX_ELLS];
 	MULTI_TYPE type;  
 } Pole; //Bin
 

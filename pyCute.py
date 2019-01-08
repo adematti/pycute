@@ -26,7 +26,7 @@ class PyCute(object):
 	def __init__(self):
 
 		self.cute = ctypes.CDLL(self.PATH_CUTE,mode=ctypes.RTLD_GLOBAL)
-		self.free()
+		self.clear()
 
 	def set_bin(self,mode,edges,size=None,binning='lin'):
 
@@ -71,7 +71,7 @@ class PyCute(object):
 		cross = self.set_catalogues([position1,position2],[weight1,weight2])
 		
 		self.run_2pcf_smu(los=los,nthreads=nthreads)
-		self.free()
+		self.clear()
 	
 	def run_2pcf_smu(self,los='midpoint',nthreads=8):
 	
@@ -94,7 +94,7 @@ class PyCute(object):
 		cross = self.set_catalogues([position1,position2],[weight1,weight2])
 		
 		self.run_2pcf_s(nthreads=nthreads)
-		self.free()
+		self.clear()
 	
 	def run_2pcf_s(self,nthreads=8):
 	
@@ -125,7 +125,7 @@ class PyCute(object):
 		cross = self.set_catalogues([position1,position2],[weight1,weight2])
 	
 		self.run_2pcf_angular(degree=True,nthreads=nthreads)
-		self.free()
+		self.clear()
 	
 	def run_2pcf_angular(self,degree=True,nthreads=8):
 		
@@ -149,7 +149,7 @@ class PyCute(object):
 		cross = self.set_catalogues([position1,position2],[weight1,weight2])
 		
 		self.run_2pcf_multi(los=los,nthreads=nthreads)
-		self.free()
+		self.clear()
 	
 	def run_2pcf_multi(self,los='midpoint',nthreads=8):
 	
@@ -171,7 +171,7 @@ class PyCute(object):
 		cross = self.set_catalogues([position1,position2],[weight1,weight2])
 		
 		self.run_2pcf_scos(nthreads=nthreads)
-		self.free()
+		self.clear()
 	
 	def run_2pcf_scos(self,nthreads=8):
 	
@@ -194,13 +194,13 @@ class PyCute(object):
 		self.muedges = self.set_bin('aux',muedges,size=1)
 		if scipy.isscalar(ells[0]): ells = [ells,ells]
 		self.ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in [0,1]]
-		if (self.ells[-1] != self.ells[0]) and (position3 is None): 
+		if (self.ells[-1] != self.ells[0]) and (position3 is None):
 			position3 = position2
 			weight3 = weight2
 		
 		self.set_catalogues([position1,position2,position3],[weight1,weight2,weight3])
 		self.run_3pcf_multi(los=los,nthreads=nthreads)
-		self.free()
+		self.clear()
 	
 	def run_3pcf_multi(self,los='midpoint',nthreads=8):
 	
@@ -219,13 +219,13 @@ class PyCute(object):
 		self.muedges = self.set_bin('aux',muedges,size=1)
 		if scipy.isscalar(ells[0]): ells = [ells,ells]
 		self.ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in [0,1]]
-		if (self.ells[-1] != self.ells[0]) and (position3 is None): 
+		if (self.ells[-1] != self.ells[0]) and (position3 is None):
 			position3 = position2
 			weight3 = weight2
 		
 		self.set_catalogues([position1,position2,position3],[weight1,weight2,weight3])
 		self.run_3pcf_multi_double_los(los=los,nthreads=nthreads)
-		self.free()
+		self.clear()
 	
 	def run_3pcf_multi_double_los(self,los='endpoint',nthreads=8):
 	
@@ -247,7 +247,7 @@ class PyCute(object):
 		
 		self.set_catalogues([position1,position2],[weight1,weight2])
 		self.run_2pcf_multi_radial(normalize=normalize,los=los,nthreads=nthreads)
-		self.free()
+		self.clear()
 	
 	def run_2pcf_multi_radial(self,normalize=False,los='midpoint',nthreads=8):
 	
@@ -270,7 +270,7 @@ class PyCute(object):
 		
 		self.set_catalogues([position1,position2,position3,position4],[weight1,weight2,weight3,weight4])
 		self.run_4pcf_multi_radial(normalize=normalize,los=los,nthreads=nthreads)
-		self.free()
+		self.clear()
 	
 	def run_4pcf_multi_radial(self,normalize=False,los='midpoint',nthreads=8):
 	
@@ -329,7 +329,7 @@ class PyCute(object):
 		self.position[num].shape = (n,sizeposition)
 		self.weight[num].shape = (n,sizeweight)
 
-	def free(self):
+	def clear(self):
 		self.position = {}
 		self.weight = {}
 		self.cute.clear_catalogs()

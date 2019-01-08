@@ -192,16 +192,18 @@ void print_los_type()
 {
 	if (los_type==LOS_MIDPOINT) printf(" - los-type: midpoint\n");
 	else if (los_type==LOS_ENDPOINT) printf(" - los-type: endpoint\n");
+	else if (los_type==LOS_X) printf(" - los-type: x\n");
 }
 
 void set_los_type(char* type)
 {
 	if (!strcmp(type,"midpoint")) los_type=LOS_MIDPOINT;
 	else if (!strcmp(type,"endpoint")) los_type=LOS_ENDPOINT;
+	else if (!strcmp(type,"x")) los_type=LOS_X;
 	else {
 		los_type=LOS_MIDPOINT;
-		fprintf(stderr," - invalid los type. Choices: middle or endpoint.\n");
-		fprintf(stderr," - I choose middle.\n");
+		fprintf(stderr," - invalid los type. Choices: midpoint, endpoint or x.\n");
+		fprintf(stderr," - I choose midpoint.\n");
 	}
 #ifdef _VERBOSE
 	print_los_type();
