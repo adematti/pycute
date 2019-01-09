@@ -58,6 +58,17 @@ size_t get_bin_index(histo_t x,Bin bin)
 	exit(1);
 }
 
+histo_t get_bin_mid(size_t ibin,Bin bin)
+{
+	if (bin.type==BIN_LIN) return (ibin+0.5)*bin.step+bin.min;
+	else if (bin.type==BIN_LOG) return pow(10.,(ibin+0.5)*bin.step+bin.min);
+	else if (bin.type==BIN_CUSTOM) {
+		if (ibin==bin.n_bin-1) return bin.edges[ibin];
+		return (bin.edges[ibin]+bin.edges[ibin+1])/2.;
+	}
+	fprintf(stderr,"Invalid bin type\n");
+	exit(1);
+}
 
 size_t ravel_index(size_t ind[],size_t dim[],size_t n)
 {

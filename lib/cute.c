@@ -343,6 +343,34 @@ void run_2pcf_multi(histo_t *meanmain,histo_t *count,char *los_type,size_t num_t
 	free_meshs(meshs,n_cats);
 }
 
+void run_2pcf_multi_radial_leg(histo_t *count,char *los_type,size_t num_threads)
+{
+	timer(0);
+	set_num_catalogs();
+#ifdef _VERBOSE
+	printf("*** 2-point radial-legendre correlation function multipoles\n");
+	print_catalogs();
+	print_bin("main");
+	print_bin("aux");
+	print_pole(poles[0]);
+	print_pole(poles[1]);
+#endif //_VERBOSE
+	corr_type = CORR_SMU;
+	set_los_type(los_type);
+	set_num_threads(num_threads);
+	set_meshs(cats,meshs,n_cats);
+#ifdef _VERBOSE
+	timer(1);
+#endif //_VERBOSE
+	cross_2pcf_multi_radial_leg(meshs[0],meshs[1],count,poles);
+#ifdef _VERBOSE
+	printf("*** Cleaning up\n");
+	timer(1);
+	printf("\n");
+#endif //_VERBOSE
+	free_meshs(meshs,n_cats);
+}
+
 void run_3pcf_multi(histo_t *count,char *los_type,size_t num_threads)
 {
 	timer(0);

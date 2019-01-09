@@ -29,6 +29,8 @@ histo_t wrap_phi(histo_t phi);
 
 size_t get_bin_index(histo_t x,Bin bin);
 
+histo_t get_bin_mid(size_t ibin,Bin bin);
+
 size_t ravel_index(size_t ind[],size_t dim[],size_t n);
 
 size_t* unravel_index(size_t ind,size_t dim[],size_t n,size_t index[]);
@@ -48,7 +50,6 @@ void error_mem_out(void);
 void error_open_file(char *fname);
 
 void free_catalog(Catalog cat);
-
 
 //Boxes
 
@@ -71,6 +72,8 @@ void auto_2pcf_main_aux(Mesh mesh1,histo_t meanmain[],histo_t meanaux[],histo_t 
 void cross_2pcf_multi(Mesh mesh1,Mesh mesh2,histo_t meanmain[],histo_t count[],Pole pole);
 
 void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[],histo_t count[],Pole pole);
+
+void cross_2pcf_multi_radial_leg(Mesh mesh1,Mesh mesh2,histo_t count[],Pole *poles);
 
 void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[],Pole *poles);
 
