@@ -33,11 +33,12 @@ def save_catalogues(nrand=1000,ncat=4):
 		cat = scipy.asarray(cat).T
 		scipy.savetxt('cat_{:d}.txt'.format(icat),cat)
 
-def load_catalogues(ncat=2):
+def load_catalogues(ncat=2,mask=None):
 	res = []
 	for icat in range(1,ncat+1):
 		cat = scipy.loadtxt('cat_{:d}.txt'.format(icat),unpack=True)
-		res += [cat[:3].T,cat[-1]]
+		if mask is not None: res += [cat[:3].T[mask],cat[-1][mask]]
+		else: res += [cat[:3].T,cat[-1]]
 	return res
 	
 def survey_size(pos):
@@ -84,7 +85,7 @@ def reference_smu(sedges,muedges,position1,weight1,position2=None,weight2=None,l
 	pc = correlate.paircount(tree2,tree1,bins,np=0,usefast=False,compute_mean_coords=True)
 	return pc.sum1
 	
-def reference_multi(sedges,position1,weight1,position2=None,weight2=None,ells=[0,1,2,3,4],los='midpoint'):
+def reference_2pcf_multi(sedges,position1,weight1,position2=None,weight2=None,ells=[0,1,2,3,4],los='midpoint'):
 	"""Reference pair counting via kdcount"""
 	tree1 = correlate.points(position1,boxsize=None,weights=weight1)
 	if position2 is None: tree2 = tree1
@@ -141,7 +142,7 @@ def test_smu():
 	position1,weight1,position2,weight2 = load_catalogues()
 	#weight1[:] = 1.; weight2[:] = 1.
 	pycute = PyCute()
-	
+	"""
 	pycute.set_2pcf_smu(sedges,muedges,position1,weight1,position2=position2,weight2=weight2,nthreads=nthreads)
 	countsref = reference_smu(sedges,muedges,position1,weight1,position2=position2,weight2=weight2)
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
@@ -150,7 +151,7 @@ def test_smu():
 	countsref = reference_smu(sedges,muedges,position1,weight1,position2=position1,weight2=weight1)
 	counts = pycute.counts + pycute.counts[:,::-1]
 	testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
-	
+	"""
 	sedges_ = [0.,1.,3.,5.,6.]
 	pycute.set_2pcf_smu(sedges_,muedges,position1,weight1,nthreads=nthreads,sbinning='custom')
 	countsref = reference_smu(sedges_,muedges,position1,weight1)
@@ -163,30 +164,31 @@ def test_smu():
 	counts = pycute.counts + pycute.counts[:,::-1]
 	testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
 	
+	"""
 	pycute.set_2pcf_smu(sedges,muedges,position1,weight1,nthreads=nthreads,los='x')
 	countsref = reference_smu(sedges,muedges,position1,weight1,position2=position1,weight2=weight1,los='x')
 	counts = pycute.counts + pycute.counts[:,::-1]
 	testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
-	
+	"""
 	#ref = DDsmu(0,nthreads,pycute.sedges,muedges[-1],nmu,X1=position1[0],Y1=position1[1],Z1=position1[2],weights1=weight1,X2=position2[0],Y2=position2[1],Z2=position2[2],weights2=weight2,weight_type='pair_product',periodic=False,verbose=True,output_savg=True)
 	#countsref = (ref['npairs']*ref['weightavg']).reshape((len(sedges)-1,nmu//2))
 	
-def test_multi():
+def test_2pcf_multi():
 	position1,weight1,position2,weight2 = load_catalogues()
 	pycute = PyCute()
 	for ells in [[0,1,2,3,4,5,6],[0,2,4,6,8],[1,3,5,7,9]]:
 		
 		pycute.set_2pcf_multi(sedges,position1,weight1,position2=position2,weight2=weight2,ells=ells,nthreads=nthreads,muedges=[-1.,1.])
-		countsref = reference_multi(sedges,position1,weight1,position2=position2,weight2=weight2,ells=ells)
+		countsref = reference_2pcf_multi(sedges,position1,weight1,position2=position2,weight2=weight2,ells=ells)
 		testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 		
 		pycute.set_2pcf_multi(sedges,position1,weight1,ells=ells,nthreads=nthreads,muedges=[-1.,1.])
-		countsref = reference_multi(sedges,position1,weight1,ells=ells)
+		countsref = reference_2pcf_multi(sedges,position1,weight1,ells=ells)
 		counts = (1 + (-1)**scipy.asarray(pycute.ells))*pycute.counts
 		testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
 		
 		pycute.set_2pcf_multi(sedges,position1,weight1,ells=ells,nthreads=nthreads,muedges=[-1.,1.],los='x')
-		countsref = reference_multi(sedges,position1,weight1,ells=ells,los='x')
+		countsref = reference_2pcf_multi(sedges,position1,weight1,ells=ells,los='x')
 		counts = (1 + (-1)**scipy.asarray(pycute.ells))*pycute.counts
 		testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
 	
@@ -283,48 +285,168 @@ def test_los():
 		pycute.set_2pcf_multi(sedges,position1,weight1,position2=position2,weight2=weight2,ells=ells,nthreads=nthreads,muedges=[-1.,1.],los='midpoint')
 		middle = scipy.array(pycute.counts)
 		pycute.set_2pcf_multi(sedges,position1,weight1,position2=position2,weight2=weight2,ells=ells,nthreads=nthreads,muedges=[-1.,1.],los='endpoint')
-		print scipy.absolute(pycute.counts/middle-1.)[middle>0.].max()
+		#print scipy.absolute(pycute.counts/middle-1.)[middle>0.].max()
 	
 	ells = [1,3,5,7,9]
 	pycute.set_2pcf_multi(sedges,position1,weight1,position2=position1,weight2=weight1,ells=ells,nthreads=nthreads,muedges=[-1.,1.],los='midpoint')
-	print pycute.counts
 
-def save_reference_2pcf_multi_radial_leg():
+def save_reference_2pcf_multi_radial_legendre():
 	position1,weight1,position2,weight2 = load_catalogues()
 	pycute = PyCute()
-	pycute.set_2pcf_multi_radial_leg(sedges,position1,weight1,position2,weight2,ells=ells,nthreads=nthreads)
-	scipy.save('ref_2pcf_multi_radial_leg.npy',pycute.counts)
-		
-def reference_2pcf_multi_radial_leg():
-	return scipy.load('ref_2pcf_multi_radial_leg.npy')
+	pycute.set_2pcf_multi_radial_legendre(sedges,position1,weight1,position2,weight2,ells=ells,nthreads=nthreads)
+	scipy.save('ref_2pcf_multi_radial_legendre.npy',pycute.counts)
 
-def test_2pcf_multi_radial_leg():
+def reference_2pcf_multi_radial_legendre():
+	return scipy.load('ref_2pcf_multi_radial_legendre.npy')
+
+def test_2pcf_multi_radial_legendre():
 	position1,weight1,position2,weight2 = load_catalogues()
 	pycute = PyCute()
-	pycute.set_2pcf_multi_radial_leg(sedges,position1,weight1,position2,weight2,ells=ells,nthreads=nthreads)
-	countsref = reference_2pcf_multi_radial_leg()
+	pycute.set_2pcf_multi_radial_legendre(sedges,position1,weight1,position2,weight2,ells=ells,nthreads=nthreads)
+	countsref = reference_2pcf_multi_radial_legendre()
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 
+def save_reference_2pcf_multi_angular_legendre():
+	position1,weight1,position2,weight2 = load_catalogues()
+	pycute = PyCute()
+	pycute.set_2pcf_multi_angular_legendre(sedges,position1,weight1,position2,weight2,ells=ells,nthreads=nthreads)
+	scipy.save('ref_2pcf_multi_angular_legendre.npy',pycute.counts)
+
+def reference_2pcf_multi_angular_legendre():
+	return scipy.load('ref_2pcf_multi_angular_legendre.npy')
+
+def test_2pcf_multi_angular_legendre():
+	#ells = [0,2,4,6,8,10]
+	position1,weight1,position2,weight2 = load_catalogues()
+	#position1 += 1000.
+	#position2 += 1000.
+	pycute = PyCute()
+	pycute.set_2pcf_multi_angular_legendre(sedges,position1,weight1,position2,weight2,ells=ells,nthreads=1)
+	countsref = reference_2pcf_multi_angular_legendre()
+	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
+
+def ref_integrate_legendre(self,ells=[0]):
+	from scipy.special import legendre
+
+	midmu = (self.muedges[:-1]+self.muedges[1:])/2.
+	res = [(self.counts*legendre(ell)(midmu)).sum(axis=-1) for ell in ells]
+	return scipy.asarray(res).T
+
+def ref_integrate_legendre_bis(self,ells=[0]):
+	from scipy.special import legendre
+
+	res = []
+	for ell in ells:
+		leg = legendre(ell)(self.muedges)
+		res.append((self.counts*(leg[:-1]+leg[1:])/2.).sum(axis=-1))
+	return scipy.asarray(res).T
+
+def test_integrate_legendre():
+
+	muedges_ = scipy.linspace(-1.,1.,1000)
+	position1,weight1,position2,weight2 = load_catalogues()
+	pycute = PyCute()
+	pycute.set_2pcf_smu(sedges,muedges_,position1,weight1,position2=position2,weight2=weight2,nthreads=nthreads)
+	pycute.integrate_legendre(ells,nthreads=nthreads)
+	integralref = ref_integrate_legendre(pycute,ells=ells)
+	integralbis = ref_integrate_legendre_bis(pycute,ells=ells)
+	pycute.set_2pcf_multi(sedges,position1,weight1,position2=position2,weight2=weight2,ells=ells,nthreads=nthreads,muedges=[-1.,1.])
+	testing.assert_allclose(integralref,pycute.integral,rtol=1e-7,atol=1e-7)
+	print('Double v.s. simple (abs,rel) = {:.4g}, {:.4g}'.format(scipy.absolute(integralbis-integralref).max(),scipy.absolute((integralbis-integralref)/integralref).max()))
+	print('Double v.s. truth (abs,rel) = {:.4g}, {:.4g}'.format(scipy.absolute(integralbis-pycute.counts).max(),scipy.absolute((integralbis-pycute.counts)/pycute.counts).max()))
+	print('Simple v.s. truth (abs,rel) = {:.4g}, {:.4g}'.format(scipy.absolute(integralref-pycute.counts).max(),scipy.absolute((integralref-pycute.counts)/pycute.counts).max()))
+	
+def ref_integrate_radial_legendre(self,ells=[[0],[0]]):
+	from scipy.special import legendre
+
+	midmu = (self.muedges[:-1]+self.muedges[1:])/2.
+	mids = (self.sedges[:-1]+self.sedges[1:])/2.
+	meshd,meshs = scipy.meshgrid(mids,mids,sparse=False,indexing='ij')
+	
+	res = []
+	for ell1 in ells[0]:
+		res.append([])
+		weight = (self.counts*legendre(ell1)(midmu)).T
+		for ell2 in ells[1]:
+			midmu2 = midmu[:,None,None]*meshd/meshs #mu,d,s
+			tmp = weight[:,:,None]*legendre(ell2)(midmu2)
+			tmp /= mids[None,None,:]
+			tmp[scipy.absolute(midmu2)>1.] = 0.
+			res[-1].append(tmp.sum(axis=0))
+
+	return scipy.transpose(scipy.asarray(res),axes=(2,3,0,1))
+
+def test_integrate_radial_legendre():
+
+	muedges_ = scipy.linspace(-1.,1.,1000)
+	sedges = scipy.linspace(0.001,10.,100)
+	position1,weight1,position2,weight2 = load_catalogues()
+	pycute = PyCute()
+	pycute.set_2pcf_smu(sedges,muedges_,position1,weight1,position2=position2,weight2=weight2,nthreads=nthreads)
+	pycute.integrate_radial_legendre([ells,ells],nthreads=nthreads)
+	integralref = ref_integrate_radial_legendre(pycute,ells=[ells,ells])
+	testing.assert_allclose(integralref,pycute.integral,rtol=1e-7,atol=1e-7)
+
+def ref_integrate_angular_legendre(self,ells=[[0],[0]]):
+	from scipy.special import legendre
+
+	midmu = (self.muedges[:-1]+self.muedges[1:])/2.
+	mids = (self.sedges[:-1]+self.sedges[1:])/2.
+	meshd,meshs = scipy.meshgrid(mids,mids,sparse=False,indexing='ij')
+	
+	res = []
+	for ell1 in ells[0]:
+		res.append([])
+		weight = (self.counts*legendre(ell1)(midmu)).T
+		for ell2 in ells[1]:
+			midmu2 = 1.-(meshd/meshs)**2*(1.-midmu**2)[:,None,None]
+			midmu2[midmu2<0.] = scipy.nan
+			midmu2 = scipy.sqrt(midmu2)
+			tmp = weight[:,:,None]*(legendre(ell2)(midmu2)+legendre(ell2)(-midmu2))
+			tmp /= (mids[None,None,:])**2*midmu2
+			tmp[scipy.isnan(midmu2)] = 0.
+			res[-1].append(tmp.sum(axis=0))
+
+	return scipy.transpose(scipy.asarray(res),axes=(2,3,0,1))
+
+def test_integrate_angular_legendre():
+
+	muedges_ = scipy.linspace(-1.,1.,201)
+	sedges = scipy.linspace(0.001,10.,101)
+	position1,weight1,position2,weight2 = load_catalogues()
+	pycute = PyCute()
+	pycute.set_2pcf_smu(sedges,muedges_,position1,weight1,position2=position2,weight2=weight2,nthreads=nthreads)
+	pycute.integrate_angular_legendre([ells,ells],nthreads=nthreads)
+	integralref = ref_integrate_angular_legendre(pycute,ells=[ells,ells])
+	testing.assert_allclose(integralref,pycute.integral,rtol=1e-7,atol=1e-7)
+
+	
 
 """
 save_catalogues()
 save_reference_3pcf_multi()
 save_reference_2pcf_multi_radial()
 save_reference_3pcf_multi_radial()
-save_reference_2pcf_multi_radial_leg()
+save_reference_2pcf_multi_radial_legendre()
+save_reference_2pcf_multi_angular_legendre()
 """
 """
 test_s()
 test_angular()
 test_smu()
-test_multi()
 test_scos()
+test_los()
+test_2pcf_multi()
 test_3pcf_multi()
 test_3pcf_multi_double_los()
 test_2pcf_multi_radial()
 test_4pcf_multi_radial()
 comp_3pcf_multi_radial()
-test_2pcf_multi_radial_leg()
+test_2pcf_multi_radial_legendre()
+test_2pcf_multi_angular_legendre()
+test_integrate_legendre()
+test_integrate_radial_legendre()
+test_integrate_angular_legendre()
 """
-#test_los()
+test_2pcf_multi_angular_legendre()
 

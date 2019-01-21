@@ -43,6 +43,8 @@ void legendre_even(histo_t mu2,histo_t leg[]);
 
 void legendre_odd(histo_t mu,histo_t mu2,histo_t leg[]);
 
+void legendre(histo_t dist,histo_t leg[],MULTI_TYPE type);
+
 void timer(size_t i);
 
 void error_mem_out(void);
@@ -73,7 +75,9 @@ void cross_2pcf_multi(Mesh mesh1,Mesh mesh2,histo_t meanmain[],histo_t count[],P
 
 void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[],histo_t count[],Pole pole);
 
-void cross_2pcf_multi_radial_leg(Mesh mesh1,Mesh mesh2,histo_t count[],Pole *poles);
+void cross_2pcf_multi_radial_legendre(Mesh mesh1,Mesh mesh2,histo_t count[],Pole *poles);
+
+void cross_2pcf_multi_angular_legendre(Mesh mesh1,Mesh mesh2,histo_t count[],Pole *poles);
 
 void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[],Pole *poles);
 

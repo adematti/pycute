@@ -61,16 +61,22 @@ size_t get_bin_index(histo_t x,Bin bin)
 histo_t get_bin_mid(size_t ibin,Bin bin)
 {
 	if (bin.type==BIN_LIN) return (ibin+0.5)*bin.step+bin.min;
-	else if (bin.type==BIN_LOG) return pow(10.,(ibin+0.5)*bin.step+bin.min);
-	else if (bin.type==BIN_CUSTOM) {
-		if (ibin==bin.n_bin-1) return bin.edges[ibin];
+	else if ((bin.type==BIN_LOG)||(bin.type==BIN_CUSTOM)) {
+		if (ibin>=bin.n_bin) return bin.edges[ibin];
 		return (bin.edges[ibin]+bin.edges[ibin+1])/2.;
 	}
 	fprintf(stderr,"Invalid bin type\n");
 	exit(1);
 }
 
-
+histo_t get_bin_edge(size_t ibin,Bin bin)
+{
+	if (bin.type==BIN_LIN) return ibin*bin.step+bin.min;
+	else if (bin.type==BIN_LOG) return pow(10.,ibin*bin.step+bin.min);
+	else if (bin.type==BIN_CUSTOM) return bin.edges[ibin];
+	fprintf(stderr,"Invalid bin type\n");
+	exit(1);
+}
 
 size_t ravel_index(size_t ind[],size_t dim[],size_t n)
 {
@@ -159,6 +165,19 @@ void legendre_odd(histo_t mu,histo_t mu2,histo_t leg[])
 	leg[3] = 1./16.*(429.*mu7-693.*mu5+315*mu3-35.*mu);
 	leg[4] = 1./128.*(12155.*mu9-25740.*mu7+18018*mu5-4620.*mu3+315.*mu);
 	leg[5] = 1./256.*(88179.*mu11-230945.*mu9+218790*mu7-90090.*mu5+15015.*mu3-693.*mu);
+}
+
+void legendre(histo_t dist,histo_t leg[],MULTI_TYPE type) {
+	
+	if (type==MULTI_ALL) {
+		legendre_all(dist,dist*dist,leg);
+	}
+	else if (type==MULTI_EVEN) {
+		legendre_even(dist*dist,leg);
+	}
+	else if (type==MULTI_ODD) {
+		legendre_odd(dist,dist*dist,leg);
+	}
 }
 
 void timer(size_t i)

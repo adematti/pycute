@@ -90,16 +90,19 @@ void set_bin(char* mode,histo_t* edges,size_t n_bin,char* type)
 		bin.type=BIN_LOG;
 		bin.log10min=log10(bin.min);
 		bin.log10max=log10(bin.max);
-		bin.step=(bin.log10max-bin.log10min)/n_bin;
+		bin.step=(bin.log10max-bin.log10min)/bin.n_bin;
+		bin.edges=(histo_t *) malloc((bin.n_bin+1)*sizeof(histo_t));
+		size_t ibin;
+		for (ibin=0;ibin<=bin.n_bin;ibin++) bin.edges[ibin]=pow(10.,bin.step*ibin+bin.log10min);
 	}
 	else if (!strcmp(type,"custom")) {
 		bin.type=BIN_CUSTOM;
 		bin.edges=edges;
-		bin.step=(bin.max-bin.min)/n_bin;
+		bin.step=(bin.max-bin.min)/bin.n_bin;
 	}
 	else {
 		bin.type=BIN_LIN;
-		bin.step=(bin.max-bin.min)/n_bin;
+		bin.step=(bin.max-bin.min)/bin.n_bin;
 		fprintf(stderr," - invalid main-binning type. Choices:lin, log or custom.\n");
 		fprintf(stderr," - I choose linear binning.\n");
 	}
@@ -114,6 +117,18 @@ void set_bin(char* mode,histo_t* edges,size_t n_bin,char* type)
 #ifdef _VERBOSE
 	print_bin(mode);
 #endif //_VERBOSE
+}
+
+void free_bin(Bin *bin) {
+	if ((bin->type==BIN_LOG)&&(bin->n_bin>0)) free(bin->edges);
+	bin->n_bin=0; 
+}
+
+void clear_bins()
+{
+	free_bin(&bin_main);
+	free_bin(&bin_aux);
+	free_bin(&bin_radial);
 }
 
 void print_corr_type()
@@ -343,7 +358,7 @@ void run_2pcf_multi(histo_t *meanmain,histo_t *count,char *los_type,size_t num_t
 	free_meshs(meshs,n_cats);
 }
 
-void run_2pcf_multi_radial_leg(histo_t *count,char *los_type,size_t num_threads)
+void run_2pcf_multi_radial_legendre(histo_t *count,char *los_type,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -362,7 +377,35 @@ void run_2pcf_multi_radial_leg(histo_t *count,char *los_type,size_t num_threads)
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	cross_2pcf_multi_radial_leg(meshs[0],meshs[1],count,poles);
+	cross_2pcf_multi_radial_legendre(meshs[0],meshs[1],count,poles);
+#ifdef _VERBOSE
+	printf("*** Cleaning up\n");
+	timer(1);
+	printf("\n");
+#endif //_VERBOSE
+	free_meshs(meshs,n_cats);
+}
+
+void run_2pcf_multi_angular_legendre(histo_t *count,char *los_type,size_t num_threads)
+{
+	timer(0);
+	set_num_catalogs();
+#ifdef _VERBOSE
+	printf("*** 2-point angular-legendre correlation function multipoles\n");
+	print_catalogs();
+	print_bin("main");
+	print_bin("aux");
+	print_pole(poles[0]);
+	print_pole(poles[1]);
+#endif //_VERBOSE
+	corr_type = CORR_SMU;
+	set_los_type(los_type);
+	set_num_threads(num_threads);
+	set_meshs(cats,meshs,n_cats);
+#ifdef _VERBOSE
+	timer(1);
+#endif //_VERBOSE
+	cross_2pcf_multi_angular_legendre(meshs[0],meshs[1],count,poles);
 #ifdef _VERBOSE
 	printf("*** Cleaning up\n");
 	timer(1);
@@ -478,4 +521,208 @@ void run_4pcf_multi_radial(histo_t *count,_Bool normalize,char *los_type,size_t 
 	free_meshs(meshs,n_cats);
 }
 
+void integrate_legendre(histo_t *count,histo_t *integral,size_t num_threads)
+{
+	printf("*** Integrating legendre\n");
+	set_num_threads(num_threads);
+	
+	Pole pole = poles[0];
+	size_t n_bin_tot = bin_main.n_bin*pole.n_ells;
+	size_t ibin;
+	for (ibin=0;ibin<n_bin_tot;ibin++) integral[ibin] = 0.;
+
+#pragma omp for nowait schedule(dynamic)
+	for (ibin=0;ibin<bin_main.n_bin;ibin++) {
+		size_t ibin_aux;
+		for (ibin_aux=0;ibin_aux<bin_aux.n_bin;ibin_aux++) {
+			histo_t dist_aux = get_bin_mid(ibin_aux,bin_aux);
+			histo_t leg[MAX_ELLS];
+			legendre(dist_aux,leg,pole.type);
+			histo_t weight = count[ibin_aux+bin_aux.n_bin*ibin];
+			size_t ill;
+			for (ill=0;ill<pole.n_ells;ill++) integral[ill+pole.n_ells*ibin] += weight*leg[ill];
+		}
+	}
+}
+
+void integrate_radial_legendre(histo_t *count,histo_t *integral,size_t num_threads)
+{
+	timer(0);
+	printf("*** Integrating radial legendre\n");
+	set_num_threads(num_threads);
+	
+	size_t n_bin_tot = bin_main.n_bin*poles[0].n_ells*bin_main.n_bin*poles[1].n_ells;
+	size_t ibin;
+	for (ibin=0;ibin<n_bin_tot;ibin++) integral[ibin] = 0.;
+
+	MULTI_TYPE multi_type1 = poles[0].type;
+	MULTI_TYPE multi_type2 = poles[1].type;
+	size_t n_ells1 = poles[0].n_ells;
+	size_t n_ells2 = poles[1].n_ells;
+
+#pragma omp for nowait schedule(dynamic)
+	for (ibin=0;ibin<bin_main.n_bin;ibin++) {
+		histo_t dist_main = get_bin_mid(ibin,bin_main);
+		size_t ibin_aux;
+		for (ibin_aux=0;ibin_aux<bin_aux.n_bin;ibin_aux++) {
+			histo_t dist_aux = get_bin_mid(ibin_aux,bin_aux);
+			histo_t leg1[MAX_ELLS],leg2[MAX_ELLS];
+			legendre(dist_aux,leg1,multi_type1);
+			histo_t weight = count[ibin_aux+bin_aux.n_bin*ibin];
+			long ibin2; //can be <0
+			for (ibin2=bin_main.n_bin-1;ibin2>=0;ibin2--) {
+				histo_t dist_main2 = get_bin_mid(ibin2,bin_main);
+				histo_t dist_aux2 = dist_main*dist_aux/dist_main2;
+				if (fabs(dist_aux2)>1.) break;
+				legendre(dist_aux2,leg2,multi_type2);
+				size_t ill1,ill2;
+				for (ill1=0;ill1<n_ells1;ill1++) {
+					histo_t tmp = weight*leg1[ill1]/dist_main2;
+					for(ill2=0;ill2<n_ells2;ill2++) integral[ill2+n_ells2*(ill1+n_ells1*(ibin2+bin_main.n_bin*ibin))] += tmp*leg2[ill2];
+				}
+			}
+		}
+	} //end omp parallel
+	timer(1);
+}
+
+void integrate_angular_legendre(histo_t *count,histo_t *integral,size_t num_threads)
+{
+	timer(0);
+	printf("*** Integrating angular legendre\n");
+	set_num_threads(num_threads);
+	
+	size_t n_bin_tot = bin_main.n_bin*poles[0].n_ells*bin_main.n_bin*poles[1].n_ells;
+	size_t ibin;
+	for (ibin=0;ibin<n_bin_tot;ibin++) integral[ibin] = 0.;
+
+	MULTI_TYPE multi_type1 = poles[0].type;
+	MULTI_TYPE multi_type2 = poles[1].type;
+	size_t n_ells1 = poles[0].n_ells;
+	size_t n_ells2 = poles[1].n_ells;
+
+#pragma omp for nowait schedule(dynamic)
+	for (ibin=0;ibin<bin_main.n_bin;ibin++) {
+		histo_t fast_dist_main = get_bin_mid(ibin,bin_main);
+		fast_dist_main *= fast_dist_main;
+		size_t ibin_aux;
+		for (ibin_aux=0;ibin_aux<bin_aux.n_bin;ibin_aux++) {
+			histo_t dist_aux = get_bin_mid(ibin_aux,bin_aux);
+			histo_t leg1[MAX_ELLS],leg2[MAX_ELLS],leg2bis[MAX_ELLS];
+			legendre(dist_aux,leg1,multi_type1);
+			histo_t weight = count[ibin_aux+bin_aux.n_bin*ibin];
+			long ibin2; //can be <0
+			for (ibin2=bin_main.n_bin-1;ibin2>=0;ibin2--) {
+				histo_t fast_dist_main2 = get_bin_mid(ibin2,bin_main);
+				fast_dist_main2 *= fast_dist_main2;
+				histo_t fast_dist_aux2 = 1.-(fast_dist_main/fast_dist_main2)*(1.-dist_aux*dist_aux);
+				if (fast_dist_aux2<0.) break;
+				histo_t dist_aux2 = sqrt(fast_dist_aux2);
+				legendre(dist_aux2,leg2,multi_type2);
+				legendre(-dist_aux2,leg2bis,multi_type2);
+				size_t ill1,ill2;
+				for (ill1=0;ill1<n_ells1;ill1++) {
+					histo_t tmp = weight*leg1[ill1]/(fast_dist_main2*dist_aux2);
+					for(ill2=0;ill2<n_ells2;ill2++) integral[ill2+n_ells2*(ill1+n_ells1*(ibin2+bin_main.n_bin*ibin))] += tmp*(leg2[ill2]+leg2bis[ill2]);
+				}
+			}
+		}
+	} //end omp parallel
+	timer(1);
+}
+
+
+/*
+void integrate_radial_legendre(histo_t *count,histo_t *integral,size_t num_threads)
+{
+	timer(0);
+	printf("*** Integrating radial legendre\n");
+	set_num_threads(num_threads);
+	
+	size_t n_bin_tot = bin_main.n_bin*poles[0].n_ells*bin_main.n_bin*poles[1].n_ells;
+	size_t ibin;
+	for (ibin=0;ibin<n_bin_tot;ibin++) integral[ibin] = 0.;
+	histo_t* threadcount;
+
+#pragma omp parallel default(none)				\
+  shared(integral,count,n_bin_tot,bin_main,bin_aux,poles) private(threadcount)
+	{
+		size_t ibin;
+		histo_t leg1[MAX_ELLS],leg2[MAX_ELLS];
+		MULTI_TYPE multi_type1 = poles[0].type;
+		MULTI_TYPE multi_type2 = poles[1].type;
+		size_t n_ells1 = poles[0].n_ells;
+		size_t n_ells2 = poles[1].n_ells;
+		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
+		for (ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0.;	
+#pragma omp for nowait schedule(dynamic)
+		for (ibin=0;ibin<bin_main.n_bin;ibin++) {
+			histo_t dist_main = get_bin_mid(ibin,bin_main);
+			size_t ibin_aux;
+			for (ibin_aux=0;ibin_aux<bin_aux.n_bin;ibin_aux++) {
+				histo_t dist_aux = get_bin_mid(ibin_aux,bin_aux);
+				legendre(dist_aux,leg1,multi_type1);
+				histo_t weight = count[ibin_aux+bin_aux.n_bin*ibin];
+				long ibin2; //can be <0
+				for (ibin2=bin_main.n_bin-1;ibin2>=0;ibin2--) {
+					histo_t dist_main2 = get_bin_mid(ibin2,bin_main);
+					histo_t dist_aux2 = dist_main*dist_aux/dist_main2;
+					if (fabs(dist_aux2)>1.) break;
+					legendre(dist_aux2,leg2,multi_type2);
+					size_t ill1,ill2;
+					for (ill1=0;ill1<n_ells1;ill1++) {
+						histo_t tmp = weight*leg1[ill1];
+						for(ill2=0;ill2<n_ells2;ill2++) threadcount[ill2+n_ells2*(ill1+n_ells1*(ibin2+bin_main.n_bin*ibin))] += tmp*leg2[ill2];
+					}
+				}
+			}
+		}
+#pragma omp critical
+		{
+			for (ibin=0;ibin<n_bin_tot;ibin++) integral[ibin] += threadcount[ibin];
+			free(threadcount);
+		}
+	} //end omp parallel
+	timer(1);
+}
+*/
+
+/*
+void integrate_legendre(histo_t *count,histo_t *integral,size_t num_threads)
+{
+	printf("*** Integrating legendre\n");
+	set_num_threads(num_threads);
+	
+	Pole pole = poles[0];
+	size_t n_bin_tot = bin_main.n_bin*pole.n_ells;
+	size_t ibin;
+	for (ibin=0;ibin<n_bin_tot;ibin++) integral[ibin] = 0.;
+	histo_t* threadcount;
+
+#pragma omp parallel default(none)				\
+  shared(integral,count,n_bin_tot,bin_main,bin_aux,pole) private(threadcount)
+	{
+		histo_t leg[MAX_ELLS];
+		size_t ibin;
+		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
+		for (ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0.;	
+#pragma omp for nowait schedule(dynamic)
+		for (ibin=0;ibin<bin_main.n_bin;ibin++) {
+			size_t ibin_aux;
+			for (ibin_aux=0;ibin_aux<bin_aux.n_bin;ibin_aux++) {
+				histo_t dist_aux = get_bin_mid(ibin_aux,bin_aux);
+				legendre(dist_aux,leg,pole.type);
+				histo_t weight = count[ibin_aux+bin_aux.n_bin*ibin];
+				size_t ill;
+				for (ill=0;ill<pole.n_ells;ill++) threadcount[ill+pole.n_ells*ibin] += weight*leg[ill];
+			}
+		}
+#pragma omp critical
+		{
+			for (ibin=0;ibin<n_bin_tot;ibin++) integral[ibin] += threadcount[ibin];
+			free(threadcount);
+		}
+	} //end omp parallel
+}
+*/
 

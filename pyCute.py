@@ -71,8 +71,7 @@ class PyCute(object):
 		cross = self.set_catalogues([position1,position2],[weight1,weight2])
 		
 		self.run_2pcf_smu(los=los,nthreads=nthreads)
-		self.clear()
-	
+
 	def run_2pcf_smu(self,los='midpoint',nthreads=8):
 	
 		shape = (len(self.sedges)-1,len(self.muedges)-1)
@@ -94,8 +93,7 @@ class PyCute(object):
 		cross = self.set_catalogues([position1,position2],[weight1,weight2])
 		
 		self.run_2pcf_s(nthreads=nthreads)
-		self.clear()
-	
+
 	def run_2pcf_s(self,nthreads=8):
 	
 		shape = (len(self.sedges)-1)
@@ -125,8 +123,7 @@ class PyCute(object):
 		cross = self.set_catalogues([position1,position2],[weight1,weight2])
 	
 		self.run_2pcf_angular(degree=True,nthreads=nthreads)
-		self.clear()
-	
+
 	def run_2pcf_angular(self,degree=True,nthreads=8):
 		
 		shape = (len(self.thetaedges)-1)
@@ -149,8 +146,7 @@ class PyCute(object):
 		cross = self.set_catalogues([position1,position2],[weight1,weight2])
 		
 		self.run_2pcf_multi(los=los,nthreads=nthreads)
-		self.clear()
-	
+
 	def run_2pcf_multi(self,los='midpoint',nthreads=8):
 	
 		shape = (len(self.sedges)-1,len(self.ells))
@@ -171,8 +167,7 @@ class PyCute(object):
 		cross = self.set_catalogues([position1,position2],[weight1,weight2])
 		
 		self.run_2pcf_scos(nthreads=nthreads)
-		self.clear()
-	
+
 	def run_2pcf_scos(self,nthreads=8):
 	
 		shape = (len(self.sedges)-1,len(self.muedges)-1)
@@ -200,8 +195,7 @@ class PyCute(object):
 		
 		self.set_catalogues([position1,position2,position3],[weight1,weight2,weight3])
 		self.run_3pcf_multi(los=los,nthreads=nthreads)
-		self.clear()
-	
+
 	def run_3pcf_multi(self,los='midpoint',nthreads=8):
 	
 		shape = (len(self.sedges)-1,len(self.sedges)-1,len(self.ells[0]),len(self.ells[1]))
@@ -225,8 +219,7 @@ class PyCute(object):
 		
 		self.set_catalogues([position1,position2,position3],[weight1,weight2,weight3])
 		self.run_3pcf_multi_double_los(los=los,nthreads=nthreads)
-		self.clear()
-	
+
 	def run_3pcf_multi_double_los(self,los='endpoint',nthreads=8):
 	
 		shape = (len(self.sedges)-1,len(self.sedges)-1,len(self.ells[0]),len(self.ells[1]))
@@ -243,12 +236,11 @@ class PyCute(object):
 		self.sedges = self.set_bin('main',sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',muedges,size=1)
 		self.radialedges = self.set_bin('radial',radialedges,size=radialsize,binning=radialbinning)
-		self.ells = self.set_pole(ells=ells)
+		self.ells = self.set_pole(1,ells=ells)
 		
 		self.set_catalogues([position1,position2],[weight1,weight2])
 		self.run_2pcf_multi_radial(normalize=normalize,los=los,nthreads=nthreads)
-		self.clear()
-	
+
 	def run_2pcf_multi_radial(self,normalize=False,los='midpoint',nthreads=8):
 	
 		shape = (len(self.sedges)-1,len(self.radialedges)-1,len(self.ells))
@@ -270,8 +262,7 @@ class PyCute(object):
 		
 		self.set_catalogues([position1,position2,position3,position4],[weight1,weight2,weight3,weight4])
 		self.run_4pcf_multi_radial(normalize=normalize,los=los,nthreads=nthreads)
-		self.clear()
-	
+
 	def run_4pcf_multi_radial(self,normalize=False,los='midpoint',nthreads=8):
 	
 		shape = (len(self.sedges)-1,len(self.sedges)-1,len(self.ells[0]),len(self.ells[1]))
@@ -283,7 +274,7 @@ class PyCute(object):
 		self.cute.run_4pcf_multi_radial(self.counts,normalize,los,nthreads)
 		self.counts.shape = shape
 
-	def set_2pcf_multi_radial_leg(self,sedges,position1,weight1,position2,weight2,position3=None,weight3=None,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',nthreads=8):
+	def set_2pcf_multi_radial_legendre(self,sedges,position1,weight1,position2,weight2,position3=None,weight3=None,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',nthreads=8):
 
 		self.sedges = self.set_bin('main',sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',muedges,size=1)
@@ -291,18 +282,38 @@ class PyCute(object):
 		self.ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in [0,1]]
 		self.set_catalogues([position1,position2],[weight1,weight2])
 		
-		self.run_2pcf_multi_radial_leg(los=los,nthreads=nthreads)
-		self.clear()
-	
-	def run_2pcf_multi_radial_leg(self,los='midpoint',nthreads=8):
+		self.run_2pcf_multi_radial_legendre(los=los,nthreads=nthreads)
+
+	def run_2pcf_multi_radial_legendre(self,los='midpoint',nthreads=8):
 	
 		shape = (len(self.sedges)-1,len(self.sedges)-1,len(self.ells[0]),len(self.ells[1]))
 	
 		self.counts = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
 		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.counts)))
 	
-		self.cute.run_2pcf_multi_radial_leg.argtypes = (typecounts,ctypes.c_char_p,ctypes.c_size_t)
-		self.cute.run_2pcf_multi_radial_leg(self.counts,los,nthreads)
+		self.cute.run_2pcf_multi_radial_legendre.argtypes = (typecounts,ctypes.c_char_p,ctypes.c_size_t)
+		self.cute.run_2pcf_multi_radial_legendre(self.counts,los,nthreads)
+		self.counts.shape = shape
+
+	def set_2pcf_multi_angular_legendre(self,sedges,position1,weight1,position2,weight2,position3=None,weight3=None,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',nthreads=8):
+
+		self.sedges = self.set_bin('main',sedges,size=ssize,binning=sbinning)
+		self.muedges = self.set_bin('aux',muedges,size=1)
+		if scipy.isscalar(ells[0]): ells = [ells,ells]
+		self.ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in [0,1]]
+		self.set_catalogues([position1,position2],[weight1,weight2])
+		
+		self.run_2pcf_multi_angular_legendre(los=los,nthreads=nthreads)
+
+	def run_2pcf_multi_angular_legendre(self,los='midpoint',nthreads=8):
+	
+		shape = (len(self.sedges)-1,len(self.sedges)-1,len(self.ells[0]),len(self.ells[1]))
+	
+		self.counts = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.counts)))
+	
+		self.cute.run_2pcf_multi_angular_legendre.argtypes = (typecounts,ctypes.c_char_p,ctypes.c_size_t)
+		self.cute.run_2pcf_multi_angular_legendre(self.counts,los,nthreads)
 		self.counts.shape = shape
 	
 	def set_catalogues(self,positions,weights):
@@ -355,5 +366,55 @@ class PyCute(object):
 		self.position = {}
 		self.weight = {}
 		self.cute.clear_catalogs()
+		self.cute.clear_bins()
 		self.cute.clear_poles()
+	
+	def integrate_legendre(self,ells=None,nthreads=8):
+	
+		if ells is not None: self.ells = self.set_pole(ells=ells)
 
+		shape = (len(self.sedges)-1,len(self.ells))
+		
+		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(self.counts.size))
+		self.integral = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		typeintegral = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.integral)))
+	
+		self.cute.integrate_legendre.argtypes = (typecounts,typeintegral,ctypes.c_size_t)
+		self.cute.integrate_legendre(self.counts.flatten(),self.integral,nthreads)
+		
+		self.integral.shape = shape
+	
+	def integrate_radial_legendre(self,ells=None,nthreads=8):
+	
+		if ells is not None:
+			if scipy.isscalar(ells[0]): ells = [ells,ells]
+			self.ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in [0,1]]
+
+		shape = (len(self.sedges)-1,len(self.sedges)-1,len(self.ells[0]),len(self.ells[1]))
+		
+		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(self.counts.size))
+		self.integral = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		typeintegral = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.integral)))
+	
+		self.cute.integrate_radial_legendre.argtypes = (typecounts,typeintegral,ctypes.c_size_t)
+		self.cute.integrate_radial_legendre(self.counts.flatten(),self.integral,nthreads)
+		
+		self.integral.shape = shape
+	
+	def integrate_angular_legendre(self,ells=None,nthreads=8):
+	
+		if ells is not None:
+			if scipy.isscalar(ells[0]): ells = [ells,ells]
+			self.ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in [0,1]]
+
+		shape = (len(self.sedges)-1,len(self.sedges)-1,len(self.ells[0]),len(self.ells[1]))
+		
+		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(self.counts.size))
+		self.integral = scipy.zeros(shape,dtype=self.C_TYPE).flatten()
+		typeintegral = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.integral)))
+	
+		self.cute.integrate_angular_legendre.argtypes = (typecounts,typeintegral,ctypes.c_size_t)
+		self.cute.integrate_angular_legendre(self.counts.flatten(),self.integral,nthreads)
+		
+		self.integral.shape = shape
+		
