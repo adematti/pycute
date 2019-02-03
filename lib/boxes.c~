@@ -161,6 +161,7 @@ void free_mesh(Mesh mesh)
 		if(mesh.boxes[ibox].n_obj>0) {
 			free(mesh.boxes[ibox].pos);
 			free(mesh.boxes[ibox].weight);
+			free(mesh.boxes[ibox].bin);
 			free(mesh.boxes[ibox].index);
 			free(mesh.boxes[ibox].visit_min);
 			free(mesh.boxes[ibox].visit_max);
@@ -189,6 +190,7 @@ Box* init_boxes(size_t n_boxes)
 		boxes[ibox].n_obj=0;
 		boxes[ibox].pos=NULL;
 		boxes[ibox].weight=NULL;
+		boxes[ibox].bin=NULL;
 		boxes[ibox].index=NULL;
 		boxes[ibox].visit_min=NULL;
 		boxes[ibox].visit_max=NULL;
@@ -350,7 +352,7 @@ Mesh catalog_to_mesh(Catalog cat)
 	histo_t *pos=(histo_t *) malloc(dim_pos*sizeof(histo_t));
 	
 	size_t *n_obj=(size_t *)malloc(n_boxes*sizeof(size_t));
-	for(ibox=0;ibox<n_boxes;ibox++) n_obj[ibox] = 0;
+	for(ibox=0;ibox<n_boxes;ibox++) n_obj[ibox]=0;
 	size_t n_full=0;
 	for(iobj=0;iobj<cat.n_obj;iobj++) {
 		box2ind(&(cat.box[iobj*dim_box]),index);
@@ -360,7 +362,7 @@ Mesh catalog_to_mesh(Catalog cat)
 	}
 	size_t *indices = (size_t *)malloc(n_boxes*sizeof(size_t));
 	size_t *full = (size_t *)malloc(n_full*sizeof(size_t));
-	n_full = 0;
+	n_full=0;
 	for(ibox=0;ibox<n_boxes;ibox++) {
 		if(n_obj[ibox]>0) {
 			indices[ibox] = n_full;
@@ -378,6 +380,8 @@ Mesh catalog_to_mesh(Catalog cat)
 		if(boxes[ibox].pos==NULL) error_mem_out();
 		boxes[ibox].weight=(histo_t *)malloc(dim_weight*n_obj[ifull]*sizeof(histo_t));
 		if(boxes[ibox].weight==NULL) error_mem_out();
+		boxes[ibox].bin=(size_t *)malloc(n_obj[ifull]*sizeof(size_t));
+		if(boxes[ibox].bin==NULL) error_mem_out();
 		boxes[ibox].index=(size_t *)malloc(dim_box*sizeof(size_t));
 		if(boxes[ibox].index==NULL) error_mem_out();
 		boxes[ibox].visit_min=(size_t *)malloc(dim_box*sizeof(size_t));
@@ -389,30 +393,26 @@ Mesh catalog_to_mesh(Catalog cat)
 		//printf("visit %zu %zu %zu   %zu %zu %zu\n",boxes[ibox].index[0],boxes[ibox].visit_min[0],boxes[ibox].visit_max[0],boxes[ibox].index[1],boxes[ibox].visit_min[1],boxes[ibox].visit_max[1]);
 		//Get box index
 	}
+	free(n_obj);
 	
 	for(iobj=0;iobj<cat.n_obj;iobj++) {
 		box2ind(&(cat.box[dim_box*iobj]),index);
 		size_t ibox=indices[ravel_index(index,n_side,dim_box)];
 		size_t n_obj=boxes[ibox].n_obj;
 		box2pos(&(cat.box[dim_box*iobj]),pos);
-		for (idim=0;idim<dim_pos;idim++) {
-			boxes[ibox].pos[dim_pos*n_obj+idim]=pos[idim];
-		}
+		for (idim=0;idim<dim_pos;idim++) boxes[ibox].pos[dim_pos*n_obj+idim]=pos[idim];
 		histo_t *weight=&(cat.weight[dim_weight*iobj]);
-		for (idim=0;idim<dim_weight;idim++) {
-			boxes[ibox].weight[dim_weight*n_obj+idim]=weight[idim];
-		}
+		for (idim=0;idim<dim_weight;idim++) boxes[ibox].weight[dim_weight*n_obj+idim]=weight[idim];
+		boxes[ibox].bin[n_obj]=cat.bin[iobj]; 
 		boxes[ibox].n_obj++;
 	}
 	Mesh mesh;
-	mesh.n_obj = cat.n_obj;
 	mesh.n_boxes = n_full;
 	mesh.boxes = boxes;
 
 	free(cat.box);
 	free(index);
 	free(pos);
-	free(n_obj);
 	free(indices);
 	free(full);
 	

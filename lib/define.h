@@ -37,7 +37,7 @@ typedef float histo_t;
 typedef double histo_t;
 #endif //_FLOAT32
 
-typedef enum {BIN_LIN, BIN_LOG, BIN_CUSTOM} BIN_TYPE;
+typedef enum {BIN_LIN, BIN_LOG, BIN_CUSTOM, BIN_BIN} BIN_TYPE;
 typedef enum {CORR_SMU, CORR_ANGULAR, CORR_SCOS} CORR_TYPE;
 typedef enum {LOS_MIDPOINT, LOS_ENDPOINT, LOS_X} LOS_TYPE;
 typedef enum {MULTI_ALL, MULTI_EVEN, MULTI_ODD} MULTI_TYPE;
@@ -47,6 +47,7 @@ typedef struct {
 	size_t n_obj;
 	histo_t *pos;
 	histo_t *weight;
+	size_t *bin;
 	size_t *index;
 	size_t *visit_min;
 	size_t *visit_max;
@@ -62,6 +63,7 @@ typedef struct {
 	size_t n_obj;
 	histo_t *pos;
 	histo_t *weight;
+	size_t *bin;
 	histo_t *box;
 } Catalog; //Catalog
 
@@ -80,7 +82,7 @@ typedef struct {
 
 CORR_TYPE corr_type;
 LOS_TYPE los_type;
-Bin bin_main,bin_aux,bin_radial;
+Bin bin_main,bin_aux,bin_bin;
 size_t dim_box,dim_weight,dim_pos;
 
 #endif //_CUTE_DEFINE_

@@ -63,7 +63,11 @@ void print_bin(char* mode)
 	printf("*** Binning\n");
 	Bin bin=bin_main;
 	if (!strcmp(mode,"aux")) bin=bin_aux;
-	else if (!strcmp(mode,"radial")) bin=bin_radial;
+	else if (!strcmp(mode,"bin")) {
+		bin=bin_bin;
+		printf(" - range: 0 <= %s < %zu\n",mode,bin.n_bin);
+		return;
+	}
 	printf(" - range: %.3f < %s < %.3f\n",bin.min,mode,bin.max);
 	if (bin.type==BIN_LIN) printf(" - #bins(lin): %zu\n",bin.n_bin);
 	else if (bin.type==BIN_LOG) printf(" - #bins(log): %zu\n",bin.n_bin);
@@ -75,18 +79,14 @@ void set_bin(char* mode,histo_t* edges,size_t n_bin,char* type)
 {
 	Bin bin;
 
-	bin.min=edges[0];
-	bin.max=edges[n_bin];
 	bin.n_bin=n_bin;
 	bin.log10min=0.;
 	bin.log10max=0.;
 	bin.edges=NULL;
 
-	if (!strcmp(type,"lin")) {
-		bin.type=BIN_LIN;
-		bin.step=(bin.max-bin.min)/n_bin;
-	}
-	else if (!strcmp(type,"log")) {
+	if (!strcmp(type,"log")) {
+		bin.min=edges[0];
+		bin.max=edges[n_bin];
 		bin.type=BIN_LOG;
 		bin.log10min=log10(bin.min);
 		bin.log10max=log10(bin.max);
@@ -96,22 +96,31 @@ void set_bin(char* mode,histo_t* edges,size_t n_bin,char* type)
 		for (ibin=0;ibin<=bin.n_bin;ibin++) bin.edges[ibin]=pow(10.,bin.step*ibin+bin.log10min);
 	}
 	else if (!strcmp(type,"custom")) {
+		bin.min=edges[0];
+		bin.max=edges[n_bin];
 		bin.type=BIN_CUSTOM;
 		bin.edges=edges;
 		bin.step=(bin.max-bin.min)/bin.n_bin;
 	}
+	else if (!strcmp(type,"bin")) {
+		bin.type=BIN_BIN;
+	}
 	else {
+		bin.min=edges[0];
+		bin.max=edges[n_bin];
 		bin.type=BIN_LIN;
 		bin.step=(bin.max-bin.min)/bin.n_bin;
-		fprintf(stderr," - invalid main-binning type. Choices:lin, log or custom.\n");
-		fprintf(stderr," - I choose linear binning.\n");
+		if (strcmp(type,"lin")) {
+			fprintf(stderr," - invalid binning type. Choices: lin, log or custom.\n");
+			fprintf(stderr," - I choose linear binning.\n");
+		}
 	}
 	if (!strcmp(mode,"main")) bin_main=bin;
 	else if (!strcmp(mode,"aux")) bin_aux=bin;
-	else if (!strcmp(mode,"radial")) bin_radial=bin;
+	else if (!strcmp(mode,"bin")) bin_bin=bin;
 	else {
 		bin_main=bin;
-		fprintf(stderr," - invalid binning. Choices: main, aux, radial.\n");
+		fprintf(stderr," - invalid binning mode. Choices: main, aux, bin.\n");
 		fprintf(stderr," - I choose main.\n");
 	}
 #ifdef _VERBOSE
@@ -128,7 +137,7 @@ void clear_bins()
 {
 	free_bin(&bin_main);
 	free_bin(&bin_aux);
-	free_bin(&bin_radial);
+	free_bin(&bin_bin);
 }
 
 void print_corr_type()
@@ -243,11 +252,12 @@ void print_normalize(_Bool normalize)
 	else printf(" - normalize: no\n");
 }
 
-void set_catalog(size_t num,histo_t *p,histo_t *w,size_t n,size_t dim_b,size_t dim_w)
+void set_catalog(size_t num,histo_t *p,histo_t *w,size_t *bin,size_t n,size_t dim_b,size_t dim_w)
 {	
 	Catalog cat;
 	cat.pos = p;
 	cat.weight = w;
+	cat.bin = bin;
 	cat.n_obj = n;
 	cats[num-1] = cat;
 	
@@ -466,12 +476,12 @@ void run_3pcf_multi_double_los(histo_t *count,char *los_type,size_t num_threads)
 	free_meshs(meshs,n_cats);
 }
 
-void run_2pcf_multi_radial(histo_t *count,_Bool normalize,char *los_type,size_t num_threads)
+void run_2pcf_multi_binned(histo_t *count,_Bool normalize,char *los_type,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
 #ifdef _VERBOSE
-	printf("*** 2-point radial correlation function multipoles\n");
+	printf("*** 2-point binned correlation function multipoles\n");
 	print_catalogs();
 	print_normalize(normalize);
 #endif //_VERBOSE
@@ -482,7 +492,7 @@ void run_2pcf_multi_radial(histo_t *count,_Bool normalize,char *los_type,size_t 
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	cross_2pcf_multi_radial(meshs[0],meshs[1],count,poles[0],normalize);
+	cross_2pcf_multi_binned(meshs[0],meshs[1],count,poles[0],normalize);
 #ifdef _VERBOSE
 	printf("*** Cleaning up\n");
 	timer(1);
@@ -491,12 +501,12 @@ void run_2pcf_multi_radial(histo_t *count,_Bool normalize,char *los_type,size_t 
 	free_meshs(meshs,n_cats);
 }
 
-void run_4pcf_multi_radial(histo_t *count,_Bool normalize,char *los_type,size_t num_threads)
+void run_4pcf_multi_binned(histo_t *count,_Bool normalize,char *los_type,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
 #ifdef _VERBOSE
-	printf("*** 4-point radial correlation function multipoles\n");
+	printf("*** 4-point binned correlation function multipoles\n");
 	print_catalogs();
 	print_normalize(normalize);
 	print_bin("main");
@@ -512,7 +522,7 @@ void run_4pcf_multi_radial(histo_t *count,_Bool normalize,char *los_type,size_t 
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	cross_4pcf_multi_radial(meshs,count,poles,normalize);
+	cross_4pcf_multi_binned(meshs,count,poles,normalize);
 #ifdef _VERBOSE
 	printf("*** Cleaning up\n");
 	timer(1);
@@ -630,99 +640,3 @@ void integrate_angular_legendre(histo_t *count,histo_t *integral,size_t num_thre
 	} //end omp parallel
 	timer(1);
 }
-
-
-/*
-void integrate_radial_legendre(histo_t *count,histo_t *integral,size_t num_threads)
-{
-	timer(0);
-	printf("*** Integrating radial legendre\n");
-	set_num_threads(num_threads);
-	
-	size_t n_bin_tot = bin_main.n_bin*poles[0].n_ells*bin_main.n_bin*poles[1].n_ells;
-	size_t ibin;
-	for (ibin=0;ibin<n_bin_tot;ibin++) integral[ibin] = 0.;
-	histo_t* threadcount;
-
-#pragma omp parallel default(none)				\
-  shared(integral,count,n_bin_tot,bin_main,bin_aux,poles) private(threadcount)
-	{
-		size_t ibin;
-		histo_t leg1[MAX_ELLS],leg2[MAX_ELLS];
-		MULTI_TYPE multi_type1 = poles[0].type;
-		MULTI_TYPE multi_type2 = poles[1].type;
-		size_t n_ells1 = poles[0].n_ells;
-		size_t n_ells2 = poles[1].n_ells;
-		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
-		for (ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0.;	
-#pragma omp for nowait schedule(dynamic)
-		for (ibin=0;ibin<bin_main.n_bin;ibin++) {
-			histo_t dist_main = get_bin_mid(ibin,bin_main);
-			size_t ibin_aux;
-			for (ibin_aux=0;ibin_aux<bin_aux.n_bin;ibin_aux++) {
-				histo_t dist_aux = get_bin_mid(ibin_aux,bin_aux);
-				legendre(dist_aux,leg1,multi_type1);
-				histo_t weight = count[ibin_aux+bin_aux.n_bin*ibin];
-				long ibin2; //can be <0
-				for (ibin2=bin_main.n_bin-1;ibin2>=0;ibin2--) {
-					histo_t dist_main2 = get_bin_mid(ibin2,bin_main);
-					histo_t dist_aux2 = dist_main*dist_aux/dist_main2;
-					if (fabs(dist_aux2)>1.) break;
-					legendre(dist_aux2,leg2,multi_type2);
-					size_t ill1,ill2;
-					for (ill1=0;ill1<n_ells1;ill1++) {
-						histo_t tmp = weight*leg1[ill1];
-						for(ill2=0;ill2<n_ells2;ill2++) threadcount[ill2+n_ells2*(ill1+n_ells1*(ibin2+bin_main.n_bin*ibin))] += tmp*leg2[ill2];
-					}
-				}
-			}
-		}
-#pragma omp critical
-		{
-			for (ibin=0;ibin<n_bin_tot;ibin++) integral[ibin] += threadcount[ibin];
-			free(threadcount);
-		}
-	} //end omp parallel
-	timer(1);
-}
-*/
-
-/*
-void integrate_legendre(histo_t *count,histo_t *integral,size_t num_threads)
-{
-	printf("*** Integrating legendre\n");
-	set_num_threads(num_threads);
-	
-	Pole pole = poles[0];
-	size_t n_bin_tot = bin_main.n_bin*pole.n_ells;
-	size_t ibin;
-	for (ibin=0;ibin<n_bin_tot;ibin++) integral[ibin] = 0.;
-	histo_t* threadcount;
-
-#pragma omp parallel default(none)				\
-  shared(integral,count,n_bin_tot,bin_main,bin_aux,pole) private(threadcount)
-	{
-		histo_t leg[MAX_ELLS];
-		size_t ibin;
-		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
-		for (ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0.;	
-#pragma omp for nowait schedule(dynamic)
-		for (ibin=0;ibin<bin_main.n_bin;ibin++) {
-			size_t ibin_aux;
-			for (ibin_aux=0;ibin_aux<bin_aux.n_bin;ibin_aux++) {
-				histo_t dist_aux = get_bin_mid(ibin_aux,bin_aux);
-				legendre(dist_aux,leg,pole.type);
-				histo_t weight = count[ibin_aux+bin_aux.n_bin*ibin];
-				size_t ill;
-				for (ill=0;ill<pole.n_ells;ill++) threadcount[ill+pole.n_ells*ibin] += weight*leg[ill];
-			}
-		}
-#pragma omp critical
-		{
-			for (ibin=0;ibin<n_bin_tot;ibin++) integral[ibin] += threadcount[ibin];
-			free(threadcount);
-		}
-	} //end omp parallel
-}
-*/
-
