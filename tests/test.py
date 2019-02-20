@@ -191,7 +191,7 @@ def test_2pcf_multi():
 		counts = (1 + (-1)**scipy.asarray(pycute.ells))*pycute.counts
 		testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
 		
-		pycute.set_2pcf_multi(sedges,position1,weight1,ells=ells,nthreads=nthreads,muedges=[-1.,1.],los='x')
+		pycute.set_2pcf_multi(sedges,position1,weight1,ells=ells,nthreads=nthreads,muedges=[-1.,1.],los=[1.,0.,0.])
 		countsref = reference_2pcf_multi(sedges,position1,weight1,ells=ells,los='x')
 		counts = (1 + (-1)**scipy.asarray(pycute.ells))*pycute.counts
 		testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
@@ -231,7 +231,7 @@ def test_3pcf_multi_double_los():
 	countsref[...,scipy.mod(ells,2)==1,:] = 0.
 	pycute.set_3pcf_multi_double_los(sedges,position1,weight1,position2,weight2,ells=ells,los='midpoint',nthreads=nthreads)
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
-	pycute.set_3pcf_multi_double_los(sedges,position1,weight1,position2,weight2,position3=position2,weight3=weight2,ells=ells,los='midpoint',nthreads=nthreads)
+	pycute.set_3pcf_multi_double_los(sedges,position1,weight1,position2,weight2,position3=position2,weight3=weight2,ells=ells,los=['midpoint','midpoint'],nthreads=nthreads)
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 	
 def save_reference_2pcf_multi_binned():
@@ -449,4 +449,5 @@ test_2pcf_multi_angular_legendre()
 test_integrate_legendre()
 test_integrate_radial_legendre()
 test_integrate_angular_legendre()
+
 

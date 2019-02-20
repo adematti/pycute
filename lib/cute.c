@@ -35,6 +35,7 @@
 
 static Catalog cats[MAX_CATS] = {{.n_obj=0},{.n_obj=0},{.n_obj=0},{.n_obj=0}};
 static Pole poles[MAX_POLES] = {{.n_ells=0},{.n_ells=0}};
+static LOS los[MAX_LOS] = {{.type=LOS_MIDPOINT},{.type=LOS_MIDPOINT}};
 static Mesh meshs[MAX_CATS];
 static size_t n_cats = MAX_CATS;
 
@@ -212,27 +213,40 @@ void clear_poles()
 }
 
 
-void print_los_type()
+void print_los(LOS l)
 {
-	if (los_type==LOS_MIDPOINT) printf(" - los-type: midpoint\n");
-	else if (los_type==LOS_ENDPOINT) printf(" - los-type: endpoint\n");
-	else if (los_type==LOS_X) printf(" - los-type: x\n");
+	printf("*** Line-of-sight\n");
+	if (l.type==LOS_MIDPOINT) printf(" - los-type: midpoint\n");
+	else if (l.type==LOS_ENDPOINT) printf(" - los-type: endpoint\n");
+	else if (l.type==LOS_CUSTOM) printf(" - los-type: custom\n");
 }
 
-void set_los_type(char* type)
+void set_los(size_t num,char* type,histo_t* vec)
 {
-	if (!strcmp(type,"midpoint")) los_type=LOS_MIDPOINT;
-	else if (!strcmp(type,"endpoint")) los_type=LOS_ENDPOINT;
-	else if (!strcmp(type,"x")) los_type=LOS_X;
+	LOS l;
+	if (!strcmp(type,"midpoint")) l.type=LOS_MIDPOINT;
+	else if (!strcmp(type,"endpoint")) l.type=LOS_ENDPOINT;
+	else if (!strcmp(type,"custom")) {
+		l.type=LOS_CUSTOM;
+		l.los=vec;
+	}
 	else {
-		los_type=LOS_MIDPOINT;
-		fprintf(stderr," - invalid los type. Choices: midpoint, endpoint or x.\n");
+		l.type=LOS_MIDPOINT;
+		fprintf(stderr," - invalid los type. Choices: midpoint, endpoint or custom.\n");
 		fprintf(stderr," - I choose midpoint.\n");
 	}
+	los[num-1] = l;
 #ifdef _VERBOSE
-	print_los_type();
+	print_los(l);
 #endif //_VERBOSE
 }
+
+void clear_los()
+{
+	size_t ilos;
+	for (ilos=0;ilos<MAX_LOS;ilos++) los[ilos].los = NULL;
+}
+
 
 void print_catalogs()
 {
@@ -310,7 +324,7 @@ void run_2pcf_main(histo_t* meanmain,histo_t* count,char* corr_type,size_t num_t
 	free_meshs(meshs,n_cats);
 }
 
-void run_2pcf_main_aux(histo_t* meanmain,histo_t* meanaux,histo_t* count,char* corr_type,char *los_type,size_t num_threads)
+void run_2pcf_main_aux(histo_t* meanmain,histo_t* meanaux,histo_t* count,char* corr_type,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -319,14 +333,13 @@ void run_2pcf_main_aux(histo_t* meanmain,histo_t* meanaux,histo_t* count,char* c
 	print_catalogs();
 #endif //_VERBOSE
 	set_corr_type(corr_type);
-	set_los_type(los_type);
 	set_num_threads(num_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	if (n_cats==1) auto_2pcf_main_aux(meshs[0],meanmain,meanaux,count);
-	else cross_2pcf_main_aux(meshs[0],meshs[1],meanmain,meanaux,count);
+	if (n_cats==1) auto_2pcf_main_aux(meshs[0],meanmain,meanaux,count,los[0]);
+	else cross_2pcf_main_aux(meshs[0],meshs[1],meanmain,meanaux,count,los[0]);
 #ifdef _DEBUG
 	if (n_cats==1) write_histo(bin_main.n_bin*bin_aux.n_bin,count,"debug_auto.dat");
 	else write_histo(bin_main.n_bin*bin_aux.n_bin,count,"debug_cross.dat");
@@ -339,7 +352,7 @@ void run_2pcf_main_aux(histo_t* meanmain,histo_t* meanaux,histo_t* count,char* c
 	free_meshs(meshs,n_cats);
 }
 
-void run_2pcf_multi(histo_t *meanmain,histo_t *count,char *los_type,size_t num_threads)
+void run_2pcf_multi(histo_t *meanmain,histo_t *count,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -348,14 +361,13 @@ void run_2pcf_multi(histo_t *meanmain,histo_t *count,char *los_type,size_t num_t
 	print_catalogs();
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
-	set_los_type(los_type);
 	set_num_threads(num_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	if (n_cats==1) auto_2pcf_multi(meshs[0],meanmain,count,poles[0]);
-	else cross_2pcf_multi(meshs[0],meshs[1],meanmain,count,poles[0]);	
+	if (n_cats==1) auto_2pcf_multi(meshs[0],meanmain,count,poles[0],los[0]);
+	else cross_2pcf_multi(meshs[0],meshs[1],meanmain,count,poles[0],los[0]);	
 #ifdef _DEBUG
 	if (n_cats==1) write_histo(bin_main.n_bin*n_ells,count,"debug_auto.dat");
 	else write_histo(bin_main.n_bin*n_ells,count,"debug_cross.dat");
@@ -368,26 +380,21 @@ void run_2pcf_multi(histo_t *meanmain,histo_t *count,char *los_type,size_t num_t
 	free_meshs(meshs,n_cats);
 }
 
-void run_2pcf_multi_radial_legendre(histo_t *count,char *los_type,size_t num_threads)
+void run_2pcf_multi_radial_legendre(histo_t *count,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
 #ifdef _VERBOSE
 	printf("*** 2-point radial-legendre correlation function multipoles\n");
 	print_catalogs();
-	print_bin("main");
-	print_bin("aux");
-	print_pole(poles[0]);
-	print_pole(poles[1]);
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
-	set_los_type(los_type);
 	set_num_threads(num_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	cross_2pcf_multi_radial_legendre(meshs[0],meshs[1],count,poles);
+	cross_2pcf_multi_radial_legendre(meshs[0],meshs[1],count,poles,los[0]);
 #ifdef _VERBOSE
 	printf("*** Cleaning up\n");
 	timer(1);
@@ -396,26 +403,21 @@ void run_2pcf_multi_radial_legendre(histo_t *count,char *los_type,size_t num_thr
 	free_meshs(meshs,n_cats);
 }
 
-void run_2pcf_multi_angular_legendre(histo_t *count,char *los_type,size_t num_threads)
+void run_2pcf_multi_angular_legendre(histo_t *count,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
 #ifdef _VERBOSE
 	printf("*** 2-point angular-legendre correlation function multipoles\n");
 	print_catalogs();
-	print_bin("main");
-	print_bin("aux");
-	print_pole(poles[0]);
-	print_pole(poles[1]);
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
-	set_los_type(los_type);
 	set_num_threads(num_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	cross_2pcf_multi_angular_legendre(meshs[0],meshs[1],count,poles);
+	cross_2pcf_multi_angular_legendre(meshs[0],meshs[1],count,poles,los[0]);
 #ifdef _VERBOSE
 	printf("*** Cleaning up\n");
 	timer(1);
@@ -424,7 +426,7 @@ void run_2pcf_multi_angular_legendre(histo_t *count,char *los_type,size_t num_th
 	free_meshs(meshs,n_cats);
 }
 
-void run_3pcf_multi(histo_t *count,char *los_type,size_t num_threads)
+void run_3pcf_multi(histo_t *count,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -433,13 +435,12 @@ void run_3pcf_multi(histo_t *count,char *los_type,size_t num_threads)
 	print_catalogs();
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
-	set_los_type(los_type);
 	set_num_threads(num_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	cross_3pcf_multi(meshs,n_cats,count,poles);
+	cross_3pcf_multi(meshs,n_cats,count,poles,los);
 #ifdef _VERBOSE
 	printf("*** Cleaning up\n");
 	timer(1);
@@ -448,7 +449,7 @@ void run_3pcf_multi(histo_t *count,char *los_type,size_t num_threads)
 	free_meshs(meshs,n_cats);
 }
 
-void run_3pcf_multi_double_los(histo_t *count,char *los_type,size_t num_threads)
+void run_3pcf_multi_double_los(histo_t *count,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -457,17 +458,14 @@ void run_3pcf_multi_double_los(histo_t *count,char *los_type,size_t num_threads)
 	print_catalogs();
 	print_bin("main");
 	print_bin("aux");
-	print_pole(poles[0]);
-	print_pole(poles[1]);
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
-	set_los_type(los_type);
 	set_num_threads(num_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	cross_3pcf_multi_double_los(meshs,n_cats,count,poles);
+	cross_3pcf_multi_double_los(meshs,n_cats,count,poles,los);
 #ifdef _VERBOSE
 	printf("*** Cleaning up\n");
 	timer(1);
@@ -476,7 +474,7 @@ void run_3pcf_multi_double_los(histo_t *count,char *los_type,size_t num_threads)
 	free_meshs(meshs,n_cats);
 }
 
-void run_2pcf_multi_binned(histo_t *count,_Bool normalize,char *los_type,size_t num_threads)
+void run_2pcf_multi_binned(histo_t *count,_Bool normalize,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -486,13 +484,12 @@ void run_2pcf_multi_binned(histo_t *count,_Bool normalize,char *los_type,size_t 
 	print_normalize(normalize);
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
-	set_los_type(los_type);
 	set_num_threads(num_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	cross_2pcf_multi_binned(meshs[0],meshs[1],count,poles[0],normalize);
+	cross_2pcf_multi_binned(meshs[0],meshs[1],count,poles[0],los[0],normalize);
 #ifdef _VERBOSE
 	printf("*** Cleaning up\n");
 	timer(1);
@@ -501,7 +498,7 @@ void run_2pcf_multi_binned(histo_t *count,_Bool normalize,char *los_type,size_t 
 	free_meshs(meshs,n_cats);
 }
 
-void run_4pcf_multi_binned(histo_t *count,_Bool normalize,char *los_type,size_t num_threads)
+void run_4pcf_multi_binned(histo_t *count,_Bool normalize,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
@@ -509,20 +506,14 @@ void run_4pcf_multi_binned(histo_t *count,_Bool normalize,char *los_type,size_t 
 	printf("*** 4-point binned correlation function multipoles\n");
 	print_catalogs();
 	print_normalize(normalize);
-	print_bin("main");
-	print_bin("aux");
-	print_bin("radial");
-	print_pole(poles[0]);
-	print_pole(poles[1]);
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
-	set_los_type(los_type);
 	set_num_threads(num_threads);
 	set_meshs(cats,meshs,n_cats);
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	cross_4pcf_multi_binned(meshs,count,poles,normalize);
+	cross_4pcf_multi_binned(meshs,count,poles,los,normalize);
 #ifdef _VERBOSE
 	printf("*** Cleaning up\n");
 	timer(1);

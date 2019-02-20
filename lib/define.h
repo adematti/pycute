@@ -30,6 +30,7 @@
 #define MAX_ELLS 9
 #define MAX_CATS 4
 #define MAX_POLES 2
+#define MAX_LOS 2
 
 #ifdef _FLOAT32
 typedef float histo_t;
@@ -39,7 +40,7 @@ typedef double histo_t;
 
 typedef enum {BIN_LIN, BIN_LOG, BIN_CUSTOM, BIN_BIN} BIN_TYPE;
 typedef enum {CORR_SMU, CORR_ANGULAR, CORR_SCOS} CORR_TYPE;
-typedef enum {LOS_MIDPOINT, LOS_ENDPOINT, LOS_X} LOS_TYPE;
+typedef enum {LOS_MIDPOINT, LOS_ENDPOINT, LOS_CUSTOM} LOS_TYPE;
 typedef enum {MULTI_ALL, MULTI_EVEN, MULTI_ODD} MULTI_TYPE;
 
 //Box for 2PCFs
@@ -73,15 +74,19 @@ typedef struct {
 	histo_t min,max,step,log10min,log10max;
 	histo_t* edges;
 	BIN_TYPE type;  
-} Bin; //Bin
+} Bin;
 
 typedef struct {
 	size_t n_ells;
 	MULTI_TYPE type;  
-} Pole; //Bin
+} Pole;
+
+typedef struct {
+	histo_t *los;
+	LOS_TYPE type;  
+} LOS;
 
 CORR_TYPE corr_type;
-LOS_TYPE los_type;
 Bin bin_main,bin_aux,bin_bin;
 size_t dim_box,dim_weight,dim_pos;
 
