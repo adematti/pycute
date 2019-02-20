@@ -30,6 +30,7 @@
 #define MAX_ELLS 9
 #define MAX_CATS 4
 #define MAX_POLES 2
+#define MAX_LOS 2
 
 #ifdef _FLOAT32
 typedef float histo_t;

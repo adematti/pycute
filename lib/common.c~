@@ -167,8 +167,20 @@ void legendre_odd(histo_t mu,histo_t mu2,histo_t leg[])
 	leg[5] = 1./256.*(88179.*mu11-230945.*mu9+218790*mu7-90090.*mu5+15015.*mu3-693.*mu);
 }
 
+histo_t power(histo_t base,size_t exp)
+{
+    histo_t result = 1.;
+    while (exp)
+    {
+        if (exp & 1) result *= base;
+        exp /= 2;
+        base *= base;
+    }
+    return result;
+}
+
 void legendre(histo_t dist,histo_t leg[],MULTI_TYPE type) {
-	
+
 	if (type==MULTI_ALL) {
 		legendre_all(dist,dist*dist,leg);
 	}

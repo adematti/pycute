@@ -51,6 +51,18 @@ static histo_t my_abs(histo_t x)
 #endif //_FLOAT32
 }
 
+histo_t power(histo_t base,size_t exp)
+{
+    histo_t result = 1.;
+    while (exp)
+    {
+        if (exp & 1) result *= base;
+        exp /= 2;
+        base *= base;
+    }
+    return result;
+}
+
 /*
 static float FastInvSqrt(float x) {
   float xhalf=0.5f * x;
@@ -120,33 +132,52 @@ static void set_fast_distance_main_limit()
 }
 
 
-static histo_t get_fast_distance_aux(histo_t *pos1,histo_t *pos2,LOS los)
+static histo_t get_fast_distance_aux(histo_t *pos1,histo_t *pos2,histo_t *los,histo_t d)
 {
 	size_t idim;
-	histo_t dist=0.;
-	histo_t norm1=0.;
-	histo_t norm2=0.;
+	histo_t dist=0.,norm=0.;
 	if (corr_type==CORR_SMU) {
-		histo_t diff,l;
+		histo_t s;
 		for (idim=0;idim<dim_pos;idim++) {
-			diff=pos2[idim]-pos1[idim];
-			if (los.type==LOS_MIDPOINT) l=pos2[idim]+pos1[idim];
-			if (los.type==LOS_ENDPOINT) l=pos1[idim];
-			else l=los.los[idim];
-			norm1+=diff*diff;
-			norm2+=l*l;
-			dist+=diff*l;
+			s=pos2[idim]-pos1[idim];
+			norm+=s*s;
+			dist+=s*los[idim];
 		}
 	}
 	else if (corr_type==CORR_SCOS) {
+		d=0.;
 		for (idim=0;idim<dim_pos;idim++){
-			norm1+=pos1[idim]*pos1[idim];
-			norm2+=pos2[idim]*pos2[idim];
+			d+=pos1[idim]*pos1[idim];
+			norm+=pos2[idim]*pos2[idim];
 			dist+=pos1[idim]*pos2[idim];
 		}
 	}
-	//return dist*dist/(norm1*norm2);
-	return dist*my_abs(dist)/(norm1*norm2); //to get the sign
+	return dist*my_abs(dist)/(norm*d); //to get the sign
+}
+
+static histo_t get_fast_distance_los(histo_t *pos1,histo_t *pos2,histo_t *d,LOS los)
+{
+	size_t idim;
+	histo_t dist=0.;
+	if (los.type==LOS_MIDPOINT) {
+		for (idim=0;idim<dim_pos;idim++) d[idim]=(pos2[idim]+pos1[idim])/2.;
+	}
+	else if (los.type==LOS_ENDPOINT) {
+		for (idim=0;idim<dim_pos;idim++) d[idim]=pos1[idim];
+	}
+	else { //LOS_CUSTOM
+		for (idim=0;idim<dim_pos;idim++) d[idim]=los.los[idim];
+	}
+	histo_t norm=0.;
+	for (idim=0;idim<dim_pos;idim++) norm+=d[idim]*d[idim];
+	return norm
+}
+
+static histo_t get_distance_losn(histo_t fast_dist,LOS los)
+{
+	if (los.n==0) return 0.;
+	else if (los.n%2==0) return power(fast_dist,los.n/2);
+	return power(my_sqrt(fast_dist),los.n);
 }
 
 static histo_t get_distance_aux(histo_t fast_dist)
@@ -412,6 +443,10 @@ void cross_2pcf_main_aux(Mesh mesh1,Mesh mesh2,histo_t meanmain[],histo_t meanau
 					for(iobj1=0;iobj1<n_obj1;iobj1++) {
 						histo_t *pos1=&(box1.pos[dim_pos*iobj1]);
 						histo_t *weight1=&(box1.weight[dim_weight*iobj1]);
+						histo_t d;
+						histo_t* los=(histo_t *) malloc(dim_pos*sizeof(histo_t));
+						if (los.type==LOS_ENDPOINT) {
+						}
 						size_t iobj2;
 						for(iobj2=0;iobj2<n_obj2;iobj2++) {
 							histo_t *pos2=&(box2.pos[dim_pos*iobj2]);

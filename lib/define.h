@@ -83,7 +83,8 @@ typedef struct {
 
 typedef struct {
 	histo_t *los;
-	LOS_TYPE type;  
+	LOS_TYPE type;
+	size_t n;
 } LOS;
 
 CORR_TYPE corr_type;
