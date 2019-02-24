@@ -141,29 +141,6 @@ void clear_bins()
 	free_bin(&bin_bin);
 }
 
-void print_corr_type()
-{
-	if (corr_type==CORR_SMU) printf(" - corr-type: s-mu\n");
-	else if (corr_type==CORR_ANGULAR) printf(" - corr-type: angular\n");
-	else if (corr_type==CORR_SCOS) printf(" - corr-type: s-cos\n");
-}
-
-void set_corr_type(char* type)
-{
-	//printf("*** Correlation type:\n");
-	if (!strcmp(type,"s-mu")) corr_type=CORR_SMU;
-	else if (!strcmp(type,"angular")) corr_type=CORR_ANGULAR;
-	else if (!strcmp(type,"s-cos")) corr_type=CORR_SCOS;
-	else {
-		corr_type=CORR_SMU;
-		fprintf(stderr," - invalid correlation type. Choices: s-mu, angular or s-cos.\n");
-		fprintf(stderr," - I choose s-mu.\n");
-	}
-#ifdef _VERBOSE
-	print_corr_type();
-#endif //_VERBOSE
-}
-
 void print_pole(Pole pole)
 {
 	printf("*** Multipoles\n");
@@ -218,23 +195,27 @@ void print_los(LOS l)
 	printf("*** Line-of-sight\n");
 	if (l.type==LOS_MIDPOINT) printf(" - los-type: midpoint\n");
 	else if (l.type==LOS_ENDPOINT) printf(" - los-type: endpoint\n");
+	else if (l.type==LOS_FIRSTPOINT) printf(" - los-type: firstpoint\n");
 	else if (l.type==LOS_CUSTOM) printf(" - los-type: custom\n");
+	printf(" - los-n: %zu\n",l.n);
 }
 
-void set_los(size_t num,char* type,histo_t* vec)
+void set_los(size_t num,char* type,histo_t* vec,size_t n)
 {
 	LOS l;
 	if (!strcmp(type,"midpoint")) l.type=LOS_MIDPOINT;
 	else if (!strcmp(type,"endpoint")) l.type=LOS_ENDPOINT;
+	else if (!strcmp(type,"firstpoint")) l.type=LOS_FIRSTPOINT;
 	else if (!strcmp(type,"custom")) {
 		l.type=LOS_CUSTOM;
 		l.los=vec;
 	}
 	else {
 		l.type=LOS_MIDPOINT;
-		fprintf(stderr," - invalid los type. Choices: midpoint, endpoint or custom.\n");
+		fprintf(stderr," - invalid los type. Choices: midpoint, endpoint, firstpoint or custom.\n");
 		fprintf(stderr," - I choose midpoint.\n");
 	}
+	l.n = n;
 	los[num-1] = l;
 #ifdef _VERBOSE
 	print_los(l);
@@ -244,9 +225,35 @@ void set_los(size_t num,char* type,histo_t* vec)
 void clear_los()
 {
 	size_t ilos;
-	for (ilos=0;ilos<MAX_LOS;ilos++) los[ilos].los = NULL;
+	for (ilos=0;ilos<MAX_LOS;ilos++) {
+		los[ilos].los = NULL;
+		los[ilos].n = 0;
+	}
 }
 
+void print_corr_type()
+{
+	if (corr_type==CORR_SMU) printf(" - corr-type: s-mu\n");
+	else if (corr_type==CORR_ANGULAR) printf(" - corr-type: angular\n");
+	else if (corr_type==CORR_SCOS) printf(" - corr-type: s-cos\n");
+}
+
+void set_corr_type(char* type)
+{
+	//printf("*** Correlation type:\n");
+	if (!strcmp(type,"s-mu")) corr_type=CORR_SMU;
+	else if (!strcmp(type,"angular")) corr_type=CORR_ANGULAR;
+	else if (!strcmp(type,"s-cos")) corr_type=CORR_SCOS;
+	else {
+		corr_type=CORR_SMU;
+		fprintf(stderr," - invalid correlation type. Choices: s-mu, angular or s-cos.\n");
+		fprintf(stderr," - I choose s-mu.\n");
+	}
+	if (corr_type==CORR_SCOS) set_los(0,"midpoint",NULL,0);
+#ifdef _VERBOSE
+	print_corr_type();
+#endif //_VERBOSE
+}
 
 void print_catalogs()
 {

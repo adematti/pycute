@@ -141,29 +141,6 @@ void clear_bins()
 	free_bin(&bin_bin);
 }
 
-void print_corr_type()
-{
-	if (corr_type==CORR_SMU) printf(" - corr-type: s-mu\n");
-	else if (corr_type==CORR_ANGULAR) printf(" - corr-type: angular\n");
-	else if (corr_type==CORR_SCOS) printf(" - corr-type: s-cos\n");
-}
-
-void set_corr_type(char* type)
-{
-	//printf("*** Correlation type:\n");
-	if (!strcmp(type,"s-mu")) corr_type=CORR_SMU;
-	else if (!strcmp(type,"angular")) corr_type=CORR_ANGULAR;
-	else if (!strcmp(type,"s-cos")) corr_type=CORR_SCOS;
-	else {
-		corr_type=CORR_SMU;
-		fprintf(stderr," - invalid correlation type. Choices: s-mu, angular or s-cos.\n");
-		fprintf(stderr," - I choose s-mu.\n");
-	}
-#ifdef _VERBOSE
-	print_corr_type();
-#endif //_VERBOSE
-}
-
 void print_pole(Pole pole)
 {
 	printf("*** Multipoles\n");
@@ -218,14 +195,17 @@ void print_los(LOS l)
 	printf("*** Line-of-sight\n");
 	if (l.type==LOS_MIDPOINT) printf(" - los-type: midpoint\n");
 	else if (l.type==LOS_ENDPOINT) printf(" - los-type: endpoint\n");
+	else if (l.type==LOS_FIRSTPOINT) printf(" - los-type: firstpoint\n");
 	else if (l.type==LOS_CUSTOM) printf(" - los-type: custom\n");
+	printf(" - los-n: %zu\n",l.n);
 }
 
-void set_los(size_t num,char* type,histo_t* vec)
+void set_los(size_t num,char* type,histo_t* vec,size_t n)
 {
 	LOS l;
 	if (!strcmp(type,"midpoint")) l.type=LOS_MIDPOINT;
 	else if (!strcmp(type,"endpoint")) l.type=LOS_ENDPOINT;
+	else if (!strcmp(type,"firstpoint")) l.type=LOS_FIRSTPOINT;
 	else if (!strcmp(type,"custom")) {
 		l.type=LOS_CUSTOM;
 		l.los=vec;
@@ -235,6 +215,7 @@ void set_los(size_t num,char* type,histo_t* vec)
 		fprintf(stderr," - invalid los type. Choices: midpoint, endpoint or custom.\n");
 		fprintf(stderr," - I choose midpoint.\n");
 	}
+	l.n = n;
 	los[num-1] = l;
 #ifdef _VERBOSE
 	print_los(l);
@@ -244,9 +225,35 @@ void set_los(size_t num,char* type,histo_t* vec)
 void clear_los()
 {
 	size_t ilos;
-	for (ilos=0;ilos<MAX_LOS;ilos++) los[ilos].los = NULL;
+	for (ilos=0;ilos<MAX_LOS;ilos++) {
+		los[ilos].los = NULL;
+		los[ilos].n = 0;
+	}
 }
 
+void print_corr_type()
+{
+	if (corr_type==CORR_SMU) printf(" - corr-type: s-mu\n");
+	else if (corr_type==CORR_ANGULAR) printf(" - corr-type: angular\n");
+	else if (corr_type==CORR_SCOS) printf(" - corr-type: s-cos\n");
+}
+
+void set_corr_type(char* type)
+{
+	//printf("*** Correlation type:\n");
+	if (!strcmp(type,"s-mu")) corr_type=CORR_SMU;
+	else if (!strcmp(type,"angular")) corr_type=CORR_ANGULAR;
+	else if (!strcmp(type,"s-cos")) corr_type=CORR_SCOS;
+	else {
+		corr_type=CORR_SMU;
+		fprintf(stderr," - invalid correlation type. Choices: s-mu, angular or s-cos.\n");
+		fprintf(stderr," - I choose s-mu.\n");
+	}
+	if (corr_type==CORR_SCOS) set_los(0,"midpoint",NULL,0);
+#ifdef _VERBOSE
+	print_corr_type();
+#endif //_VERBOSE
+}
 
 void print_catalogs()
 {
@@ -387,8 +394,6 @@ void run_2pcf_multi_radial_legendre(histo_t *count,size_t num_threads)
 #ifdef _VERBOSE
 	printf("*** 2-point radial-legendre correlation function multipoles\n");
 	print_catalogs();
-	print_bin("main");
-	print_bin("aux");
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
 	set_num_threads(num_threads);
@@ -412,8 +417,6 @@ void run_2pcf_multi_angular_legendre(histo_t *count,size_t num_threads)
 #ifdef _VERBOSE
 	printf("*** 2-point angular-legendre correlation function multipoles\n");
 	print_catalogs();
-	print_bin("main");
-	print_bin("aux");
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
 	set_num_threads(num_threads);
@@ -510,8 +513,6 @@ void run_4pcf_multi_binned(histo_t *count,_Bool normalize,size_t num_threads)
 	printf("*** 4-point binned correlation function multipoles\n");
 	print_catalogs();
 	print_normalize(normalize);
-	print_bin("main");
-	print_bin("aux");
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
 	set_num_threads(num_threads);

@@ -88,10 +88,10 @@ static histo_t get_fast_distance_main(histo_t *pos1,histo_t *pos2)
 	if ((corr_type==CORR_SMU)||(corr_type==CORR_SCOS)) {
 		size_t idim;
 		histo_t dist=0.;
-		histo_t diff;
+		histo_t s;
 		for(idim=0;idim<dim_pos;idim++){
-			diff=pos2[idim]-pos1[idim];
-			dist+=diff*diff;
+			s=pos1[idim]-pos2[idim];
+			dist+=s*s;
 		}
 		return dist;
 	}
@@ -131,53 +131,49 @@ static void set_fast_distance_main_limit()
 	fast_dist_main_max=get_inv_distance_main(bin_main.max);
 }
 
-
-static histo_t get_fast_distance_aux(histo_t *pos1,histo_t *pos2,histo_t *los,histo_t d)
+static histo_t get_distance_losn(histo_t fast_dist,size_t losn)
 {
-	size_t idim;
-	histo_t dist=0.,norm=0.;
-	if (corr_type==CORR_SMU) {
-		histo_t s;
-		for (idim=0;idim<dim_pos;idim++) {
-			s=pos2[idim]-pos1[idim];
-			norm+=s*s;
-			dist+=s*los[idim];
-		}
-	}
-	else if (corr_type==CORR_SCOS) {
-		d=0.;
-		for (idim=0;idim<dim_pos;idim++){
-			d+=pos1[idim]*pos1[idim];
-			norm+=pos2[idim]*pos2[idim];
-			dist+=pos1[idim]*pos2[idim];
-		}
-	}
-	return dist*my_abs(dist)/(norm*d); //to get the sign
+	if (losn==0) return 1.;
+	else if (losn%2==0) return power(fast_dist,losn/2);
+	return power(my_sqrt(fast_dist),losn);
 }
 
-static histo_t get_fast_distance_los(histo_t *pos1,histo_t *pos2,histo_t *d,LOS los)
+
+static histo_t get_fast_distance_aux(histo_t *pos1,histo_t *pos2,LOS los,histo_t *dist_los)
+{
+	size_t idim;
+	histo_t dist=0.,norms=0.,normd=0.;
+	if (corr_type==CORR_SMU) {
+		histo_t s,d;
+		for (idim=0;idim<dim_pos;idim++) {
+			if (los.type==LOS_MIDPOINT) d=(pos2[idim]+pos1[idim])/2.;
+			else if (los.type==LOS_ENDPOINT) d=pos1[idim];
+			else if (los.type==LOS_FIRSTPOINT) d=pos2[idim];
+			else d=los.los[idim];
+			s=pos1[idim]-pos2[idim];
+			norms+=s*s;
+			normd+=d*d;
+			dist+=s*d;
+		}
+		if (los.type==LOS_MIDPOINT) *dist_los=get_distance_losn(normd,los.n);
+	}
+	else if (corr_type==CORR_SCOS) {
+		for (idim=0;idim<dim_pos;idim++){
+			norms+=pos1[idim]*pos1[idim];
+			normd+=pos2[idim]*pos2[idim];
+			dist+=pos1[idim]*pos2[idim];
+		}
+		*dist_los=1.;
+	}
+	return dist*my_abs(dist)/(norms*normd); //to get the sign
+}
+
+static histo_t get_fast_distance(histo_t *pos)
 {
 	size_t idim;
 	histo_t dist=0.;
-	if (los.type==LOS_MIDPOINT) {
-		for (idim=0;idim<dim_pos;idim++) d[idim]=(pos2[idim]+pos1[idim])/2.;
-	}
-	else if (los.type==LOS_ENDPOINT) {
-		for (idim=0;idim<dim_pos;idim++) d[idim]=pos1[idim];
-	}
-	else { //LOS_CUSTOM
-		for (idim=0;idim<dim_pos;idim++) d[idim]=los.los[idim];
-	}
-	histo_t norm=0.;
-	for (idim=0;idim<dim_pos;idim++) norm+=d[idim]*d[idim];
-	return norm
-}
-
-static histo_t get_distance_losn(histo_t fast_dist,LOS los)
-{
-	if (los.n==0) return 0.;
-	else if (los.n%2==0) return power(fast_dist,los.n/2);
-	return power(my_sqrt(fast_dist),los.n);
+	for (idim=0;idim<dim_pos;idim++) dist+=pos[idim]*pos[idim];
+	return dist;
 }
 
 static histo_t get_distance_aux(histo_t fast_dist)
@@ -429,6 +425,8 @@ void cross_2pcf_main_aux(Mesh mesh1,Mesh mesh2,histo_t meanmain[],histo_t meanau
 			htreadaux[ibin]=0.;
 			threadcount[ibin]=0.;
 		}
+		histo_t dist_los;
+		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance(los.los),los.n);
 
 #pragma omp for nowait schedule(dynamic)
 		for(ibox1=0;ibox1<n_boxes1;ibox1++) {
@@ -443,22 +441,19 @@ void cross_2pcf_main_aux(Mesh mesh1,Mesh mesh2,histo_t meanmain[],histo_t meanau
 					for(iobj1=0;iobj1<n_obj1;iobj1++) {
 						histo_t *pos1=&(box1.pos[dim_pos*iobj1]);
 						histo_t *weight1=&(box1.weight[dim_weight*iobj1]);
-						histo_t d;
-						if (los.type==LOS_ENDPOINT) {
-							d=get_fast_distance_main(pos1,pos1);
-						}
+						if (los.type==LOS_ENDPOINT) dist_los=get_distance_losn(get_fast_distance(pos1),los.n);
 						size_t iobj2;
 						for(iobj2=0;iobj2<n_obj2;iobj2++) {
 							histo_t *pos2=&(box2.pos[dim_pos*iobj2]);
 							histo_t *weight2=&(box2.weight[dim_weight*iobj2]);
 							histo_t fast_dist_main=get_fast_distance_main(pos1,pos2);
 							if (visit_main(fast_dist_main)) {
-								histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los);
+								histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los,&dist_los);
 								if (visit_aux(fast_dist_aux)) {
 									histo_t dist_main=get_distance_main(fast_dist_main);
 									histo_t dist_aux=get_distance_aux(fast_dist_aux);
 									size_t ibin=get_bin_index(dist_aux,bin_aux)+bin_aux.n_bin*get_bin_index(dist_main,bin_main);
-									histo_t weight=get_weight(weight1,weight2);
+									histo_t weight=get_weight(weight1,weight2)/dist_los;
 									htreadmain[ibin]+=weight*dist_main;
 									htreadaux[ibin]+=weight*dist_aux;
 									threadcount[ibin]+=weight;
@@ -517,6 +512,8 @@ void auto_2pcf_main_aux(Mesh mesh1,histo_t meanmain[],histo_t meanaux[],histo_t 
 			htreadaux[ibin]=0.;
 			threadcount[ibin]=0.;
 		}
+		histo_t dist_los;
+		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance(los.los),los.n);
 
 #pragma omp for nowait schedule(dynamic)
 		for(ibox1=0;ibox1<n_boxes1;ibox1++) {
@@ -526,18 +523,19 @@ void auto_2pcf_main_aux(Mesh mesh1,histo_t meanmain[],histo_t meanaux[],histo_t 
 			for(iobj1=0;iobj1<n_obj1;iobj1++) {
 				histo_t *pos1=&(box1.pos[dim_pos*iobj1]);
 				histo_t *weight1=&(box1.weight[dim_weight*iobj1]);
+				if (los.type==LOS_ENDPOINT) dist_los=get_distance_losn(get_fast_distance(pos1),los.n);
 				size_t iobj2;
 				for(iobj2=iobj1+1;iobj2<n_obj1;iobj2++) {
 					histo_t *pos2=&(box1.pos[dim_pos*iobj2]);
 					histo_t *weight2=&(box1.weight[dim_weight*iobj2]);
 					histo_t fast_dist_main=get_fast_distance_main(pos1,pos2);
 					if (visit_main(fast_dist_main)) {
-						histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los);
+						histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los,&dist_los);
 						if (visit_aux(fast_dist_aux)) {
 							histo_t dist_main=get_distance_main(fast_dist_main);
 							histo_t dist_aux=get_distance_aux(fast_dist_aux);
 							size_t ibin=get_bin_index(dist_aux,bin_aux)+bin_aux.n_bin*get_bin_index(dist_main,bin_main);
-							histo_t weight=get_weight(weight1,weight2);
+							histo_t weight=get_weight(weight1,weight2)/dist_los;
 							htreadmain[ibin]+=weight*dist_main;
 							htreadaux[ibin]+=weight*dist_aux;
 							threadcount[ibin]+=weight;
@@ -559,12 +557,12 @@ void auto_2pcf_main_aux(Mesh mesh1,histo_t meanmain[],histo_t meanaux[],histo_t 
 							histo_t *weight2=&(box2.weight[dim_weight*iobj2]);
 							histo_t fast_dist_main=get_fast_distance_main(pos1,pos2);
 							if (visit_main(fast_dist_main)) {
-								histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los);
+								histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los,&dist_los);
 								if (visit_aux(fast_dist_aux)) {
 									histo_t dist_main=get_distance_main(fast_dist_main);
 									histo_t dist_aux=get_distance_aux(fast_dist_aux);
 									size_t ibin=get_bin_index(dist_aux,bin_aux)+bin_aux.n_bin*get_bin_index(dist_main,bin_main);
-									histo_t weight=get_weight(weight1,weight2);
+									histo_t weight=get_weight(weight1,weight2)/dist_los;
 									htreadmain[ibin]+=weight*dist_main;
 									htreadaux[ibin]+=weight*dist_aux;
 									threadcount[ibin]+=weight;
@@ -643,6 +641,9 @@ void cross_2pcf_multi(Mesh mesh1,Mesh mesh2,histo_t meanmain[],histo_t count[],P
 			threadmeanmain[ibin]=0;
 			threadcount[ibin]=0;
 		}
+		histo_t dist_los;
+		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance(los.los),los.n);
+
 #pragma omp for nowait schedule(dynamic)
 		for(ibox1=0;ibox1<n_boxes1;ibox1++) {
 			Box box1=boxes1[ibox1];
@@ -656,15 +657,16 @@ void cross_2pcf_multi(Mesh mesh1,Mesh mesh2,histo_t meanmain[],histo_t count[],P
 					for(iobj1=0;iobj1<n_obj1;iobj1++) {
 						histo_t *pos1=&(box1.pos[dim_pos*iobj1]);
 						histo_t *weight1=&(box1.weight[dim_weight*iobj1]);
+						if (los.type==LOS_ENDPOINT) dist_los=get_distance_losn(get_fast_distance(pos1),los.n);
 						size_t iobj2;
 						for(iobj2=0;iobj2<n_obj2;iobj2++) {
 							histo_t *pos2=&(box2.pos[dim_pos*iobj2]);
 							histo_t fast_dist_main=get_fast_distance_main(pos1,pos2);
 							if (visit_main(fast_dist_main)) {
-								histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los);
+								histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los,&dist_los);
 								if (visit_aux(fast_dist_aux)) {
 									histo_t dist_main=get_distance_main(fast_dist_main);
-									histo_t weight=get_weight(weight1,&(box2.weight[dim_weight*iobj2]));
+									histo_t weight=get_weight(weight1,&(box2.weight[dim_weight*iobj2]))/dist_los;
 									legendre_fast(fast_dist_aux,leg,multi_type);
 									size_t ibin=get_bin_index(dist_main,bin_main)*n_ells;
 									size_t ill;
@@ -725,6 +727,8 @@ void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[],histo_t count[],Pole pole,LOS
 			threadmeanmain[ibin]=0;
 			threadcount[ibin]=0;
 		}
+		histo_t dist_los;
+		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance(los.los),los.n);
 
 #pragma omp for nowait schedule(dynamic)
 		for(ibox1=0;ibox1<n_boxes1;ibox1++) {
@@ -734,15 +738,16 @@ void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[],histo_t count[],Pole pole,LOS
 			for(iobj1=0;iobj1<n_obj1;iobj1++) {
 				histo_t *pos1=&(box1.pos[dim_pos*iobj1]);
 				histo_t *weight1=&(box1.weight[dim_weight*iobj1]);
+				if (los.type==LOS_ENDPOINT) dist_los=get_distance_losn(get_fast_distance(pos1),los.n);
 				size_t iobj2;
 				for(iobj2=iobj1+1;iobj2<n_obj1;iobj2++) {
 					histo_t *pos2=&(box1.pos[dim_pos*iobj2]);
 					histo_t fast_dist_main=get_fast_distance_main(pos1,pos2);
 					if (visit_main(fast_dist_main)) {
-						histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los);
+						histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los,&dist_los);
 						if (visit_aux(fast_dist_aux)) {
 							histo_t dist_main=get_distance_main(fast_dist_main);
-							histo_t weight=get_weight(weight1,&(box1.weight[dim_weight*iobj2]));
+							histo_t weight=get_weight(weight1,&(box1.weight[dim_weight*iobj2]))/dist_los;;
 							legendre_fast(fast_dist_aux,leg,multi_type);
 							size_t ibin=get_bin_index(dist_main,bin_main)*n_ells;
 							size_t ill;
@@ -768,10 +773,10 @@ void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[],histo_t count[],Pole pole,LOS
 							histo_t *pos2=&(box2.pos[dim_pos*iobj2]);
 							histo_t fast_dist_main=get_fast_distance_main(pos1,pos2);
 							if (visit_main(fast_dist_main)) {
-								histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los);
+								histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los,&dist_los);
 								if (visit_aux(fast_dist_aux)) {
 									histo_t dist_main=get_distance_main(fast_dist_main);
-									histo_t weight=get_weight(weight1,&(box2.weight[dim_weight*iobj2]));
+									histo_t weight=get_weight(weight1,&(box2.weight[dim_weight*iobj2]))/dist_los;;
 									legendre_fast(fast_dist_aux,leg,multi_type);
 									size_t ibin=get_bin_index(dist_main,bin_main)*n_ells;
 									size_t ill;
@@ -826,7 +831,8 @@ void cross_2pcf_multi_radial_legendre(Mesh mesh1,Mesh mesh2,histo_t count[],Pole
 		threadcount=(histo_t *) malloc(n_bin_tot*sizeof(histo_t));
 		for(ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0;
 		histo_t leg1[MAX_ELLS],leg2[MAX_ELLS];
-		histo_t pos0[3] = {0.,0.,0.};
+		histo_t dist_los;
+		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance(los.los),los.n);
 
 #pragma omp for nowait schedule(dynamic)
 		for(ibox1=0;ibox1<n_boxes1;ibox1++) {
@@ -841,20 +847,21 @@ void cross_2pcf_multi_radial_legendre(Mesh mesh1,Mesh mesh2,histo_t count[],Pole
 					for(iobj1=0;iobj1<n_obj1;iobj1++) {
 						histo_t *pos1=&(box1.pos[dim_pos*iobj1]);
 						histo_t *weight1=&(box1.weight[dim_weight*iobj1]);
-						histo_t x2=get_fast_distance_main(pos0,pos1);
+						if (los.type==LOS_ENDPOINT) dist_los=get_distance_losn(get_fast_distance(pos1),los.n);
+						histo_t x2=get_fast_distance(pos1);
 						histo_t x=get_distance_main(x2);
 						size_t iobj2;
 						for(iobj2=0;iobj2<n_obj2;iobj2++) {
 							histo_t *pos2=&(box2.pos[dim_pos*iobj2]);
 							histo_t fast_dist_main=get_fast_distance_main(pos1,pos2);
 							if (visit_main(fast_dist_main)) {
-								histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los);
+								histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los,&dist_los);
 								if (visit_aux(fast_dist_aux)) {
 									histo_t dist_main=get_distance_main(fast_dist_main);
-									histo_t weight=get_weight(weight1,&(box2.weight[dim_weight*iobj2]));
+									histo_t weight=get_weight(weight1,&(box2.weight[dim_weight*iobj2]))/dist_los;
 									legendre_fast(fast_dist_aux,leg1,multi_type1);
 									size_t ibin1=get_bin_index(dist_main,bin_main);
-									histo_t xd2=get_fast_distance_main(pos0,pos2);
+									histo_t xd2=get_fast_distance(pos2);
 									histo_t xd=get_distance_main(xd2);
 									size_t ibin2;
 									for(ibin2=0;ibin2<bin_main.n_bin;ibin2++) {
@@ -915,7 +922,8 @@ void cross_2pcf_multi_angular_legendre(Mesh mesh1,Mesh mesh2,histo_t count[],Pol
 		threadcount=(histo_t *) malloc(n_bin_tot*sizeof(histo_t));
 		for(ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0;
 		histo_t leg1[MAX_ELLS],leg2[MAX_ELLS];
-		histo_t pos0[3] = {0.,0.,0.};
+		histo_t dist_los;
+		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance(los.los),los.n);
 
 #pragma omp for nowait schedule(dynamic)
 		for(ibox1=0;ibox1<n_boxes1;ibox1++) {
@@ -930,20 +938,21 @@ void cross_2pcf_multi_angular_legendre(Mesh mesh1,Mesh mesh2,histo_t count[],Pol
 					for(iobj1=0;iobj1<n_obj1;iobj1++) {
 						histo_t *pos1=&(box1.pos[dim_pos*iobj1]);
 						histo_t *weight1=&(box1.weight[dim_weight*iobj1]);
-						histo_t x2=get_fast_distance_main(pos0,pos1);
+						if (los.type==LOS_ENDPOINT) dist_los=get_distance_losn(get_fast_distance(pos1),los.n);
+						histo_t x2=get_fast_distance(pos1);
 						histo_t x=get_distance_main(x2);
 						size_t iobj2;
 						for(iobj2=0;iobj2<n_obj2;iobj2++) {
 							histo_t *pos2=&(box2.pos[dim_pos*iobj2]);
 							histo_t fast_dist_main=get_fast_distance_main(pos1,pos2);
 							if (visit_main(fast_dist_main)) {
-								histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los);
+								histo_t fast_dist_aux=get_fast_distance_aux(pos1,pos2,los,&dist_los);
 								if (visit_aux(fast_dist_aux)) {
 									histo_t dist_main=get_distance_main(fast_dist_main);
-									histo_t weight=get_weight(weight1,&(box2.weight[dim_weight*iobj2]));
+									histo_t weight=get_weight(weight1,&(box2.weight[dim_weight*iobj2]))/dist_los;
 									legendre_fast(fast_dist_aux,leg1,multi_type1);
 									size_t ibin1=get_bin_index(dist_main,bin_main);
-									histo_t xd2=get_fast_distance_main(pos0,pos2);
+									histo_t xd2=get_fast_distance(pos2);
 									histo_t d2=fast_dist_main;
 									histo_t mud2=my_abs(fast_dist_aux);
 									size_t ibin2;
@@ -1100,7 +1109,10 @@ void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[],Pole *poles,LOS
 		for (isec=0;isec<n_sec;isec++) countsec[isec] = (histo_t*) malloc(n_bin_sec[isec]*sizeof(histo_t));
 		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
 		for(ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0.;
-		
+		histo_t dist_los[2];
+		for (isec=0;isec<n_sec;isec++) {
+			if (los[isec].type==LOS_CUSTOM) dist_los[isec]=get_distance_losn(get_fast_distance(los[isec].los),los[isec].n);
+		}
 #pragma omp for nowait schedule(dynamic)
 		for(ibox1=0;ibox1<n_boxes1;ibox1++) {
 			Box box1=boxes1[ibox1];
@@ -1122,6 +1134,9 @@ void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[],Pole *poles,LOS
 					histo_t *count2 = countsec[isec];
 					MULTI_TYPE multi_type2 = poles[isec].type;
 					size_t n_ells2 = poles[isec].n_ells;
+					LOS los2 = los[isec];
+					histo_t dist_los2=dist_los[isec];
+					if (los2.type==LOS_ENDPOINT) dist_los2=get_distance_losn(get_fast_distance(pos1),los2.n);
 					size_t ibox2;
 					for(ibox2=0;ibox2<n_boxes2;ibox2++) {
 						Box box2=boxes2[ibox2];
@@ -1132,10 +1147,10 @@ void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[],Pole *poles,LOS
 								histo_t* pos2=&(box2.pos[dim_pos*iobj2]);
 								histo_t fast_dist_main = get_fast_distance_main(pos1,pos2);
 								if (visit_main(fast_dist_main)) {
-									histo_t fast_dist_aux = get_fast_distance_aux(pos1,pos2,los[isec]);
+									histo_t fast_dist_aux = get_fast_distance_aux(pos1,pos2,los2,&dist_los2);
 									if (visit_aux(fast_dist_aux)) {
 										size_t ibin = get_bin_index(get_distance_main(fast_dist_main),bin_main);
-										histo_t weight=box2.weight[dim_weight*iobj2];
+										histo_t weight=box2.weight[dim_weight*iobj2]/dist_los2;
 										legendre_fast(fast_dist_aux,leg,multi_type2);
 										size_t ill2;
 										for (ill2=0;ill2<n_ells2;ill2++) count2[ill2+ibin*n_ells2] += leg[ill2]*weight;
@@ -1236,7 +1251,10 @@ void cross_3pcf_multi_double_los(Mesh* meshs,size_t n_meshs,histo_t count[],Pole
 		for (isec=0;isec<2;isec++) countsec[isec] = (histo_t*) malloc(n_bin_sec[isec]*sizeof(histo_t));
 		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
 		for(ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0.;
-		
+		histo_t dist_los[2];
+		for (isec=0;isec<n_sec;isec++) {
+			if (los[isec].type==LOS_CUSTOM) dist_los[isec]=get_distance_losn(get_fast_distance(los[isec].los),los[isec].n);
+		}
 #pragma omp for nowait schedule(dynamic)
 		for(ibox1=0;ibox1<n_boxes1;ibox1++) {
 			Box box1=boxes1[ibox1];
@@ -1259,6 +1277,9 @@ void cross_3pcf_multi_double_los(Mesh* meshs,size_t n_meshs,histo_t count[],Pole
 					histo_t *count3 = countsec[1];
 					MULTI_TYPE multi_type2 = poles[isec].type;
 					size_t n_ells2 = poles[isec].n_ells;
+					LOS los2 = los[isec];
+					histo_t dist_los2=dist_los[isec];
+					if (los2.type==LOS_ENDPOINT) dist_los2 = get_distance_losn(get_fast_distance(pos1),los2.n);
 					size_t ibox2;
 					for(ibox2=0;ibox2<n_boxes2;ibox2++) {
 						Box box2=boxes2[ibox2];
@@ -1269,11 +1290,11 @@ void cross_3pcf_multi_double_los(Mesh* meshs,size_t n_meshs,histo_t count[],Pole
 								histo_t* pos2=&(box2.pos[dim_pos*iobj2]);
 								histo_t fast_dist_main = get_fast_distance_main(pos1,pos2);
 								if (visit_main(fast_dist_main)) {
-									histo_t fast_dist_aux1 = get_fast_distance_aux(pos1,pos2,los[isec]);
-									histo_t fast_dist_aux2 = (isec==0) ? get_fast_distance_aux(pos2,pos1,los[isec]) : fast_dist_aux1;
+									histo_t fast_dist_aux1 = get_fast_distance_aux(pos1,pos2,los2,&dist_los2);
+									histo_t fast_dist_aux2 = (isec==0) ? get_fast_distance_aux(pos2,pos1,los2,&dist_los2) : fast_dist_aux1;
 									if (visit_aux(fast_dist_aux1) && visit_aux(fast_dist_aux2)) {
 										size_t ibin = get_bin_index(get_distance_main(fast_dist_main),bin_main);
-										histo_t weight=box2.weight[dim_weight*iobj2];
+										histo_t weight=box2.weight[dim_weight*iobj2]/dist_los2;
 										legendre_fast(fast_dist_aux1,leg,multi_type2);
 										size_t ill2;
 										for (ill2=0;ill2<n_ells2;ill2++) count2[ill2+ibin*n_ells2] += leg[ill2]*weight;
@@ -1320,7 +1341,7 @@ void cross_3pcf_multi_double_los(Mesh* meshs,size_t n_meshs,histo_t count[],Pole
 		}
 	} //end omp parallel
 }
-
+/*
 void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t count[],Pole pole,LOS los,_Bool normalize)
 {
 	set_fast_distance_main_limit();
@@ -1369,6 +1390,8 @@ void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t count[],Pole pole,L
 		size_t n_ells = pole.n_ells;
 		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
 		for (ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0.;
+		histo_t dist_los;
+		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance(los.los),los.n);		
 		
 #pragma omp for nowait schedule(dynamic)
 		for(ibox2=0;ibox2<n_boxes2;ibox2++) {
@@ -1388,12 +1411,108 @@ void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t count[],Pole pole,L
 							size_t iobj1;
 							for (iobj1=0;iobj1<n_obj1;iobj1++) {
 								histo_t* pos1=&(box1.pos[dim_pos*iobj1]);
+								if (los.type==LOS_ENDPOINT) dist_los=get_distance_losn(get_fast_distance(pos1),los.n);
 								histo_t fast_dist_main = get_fast_distance_main(pos1,pos2);
-								histo_t fast_dist_aux = get_fast_distance_aux(pos1,pos2,los);
+								histo_t fast_dist_aux = get_fast_distance_aux(pos1,pos2,los,&dist_los);
 								if (visit_main(fast_dist_main) && visit_aux(fast_dist_aux)) {
 									ibin = bin+bin_bin.n_bin*get_bin_index(get_distance_main(fast_dist_main),bin_main);
 									legendre_fast(fast_dist_aux,leg,multi_type);
-									histo_t weight=get_weight(&(box1.weight[dim_weight*iobj1]),weight2);
+									histo_t weight=get_weight(&(box1.weight[dim_weight*iobj1]),weight2)/dist_los;
+									if (normalize) weight /= norm1*norm2[bin];
+									size_t ill;
+									for (ill=0;ill<n_ells;ill++) threadcount[ill+ibin*n_ells] += leg[ill]*weight;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+#pragma omp critical
+		{
+			for(ibin=0;ibin<n_bin_tot;ibin++) count[ibin]+=threadcount[ibin];
+			free(threadcount);
+		}
+	} //end omp parallel
+	free(norm2);
+}
+*/
+void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t count[],Pole pole,LOS los,_Bool normalize)
+{
+	set_fast_distance_main_limit();
+	set_fast_distance_aux_limit();
+	size_t n_bin_tot = bin_main.n_bin*bin_bin.n_bin*pole.n_ells;
+	size_t ibin;
+	histo_t leg[MAX_ELLS];
+	histo_t norm1=1.;
+	histo_t *norm2 = (histo_t*) malloc(bin_bin.n_bin*sizeof(histo_t));
+	//printf("%zu \n",cat1.n_obj);
+	
+	size_t n_boxes1 = mesh1.n_boxes;
+	Box* boxes1 = mesh1.boxes;
+	size_t n_boxes2 = mesh2.n_boxes;
+	Box* boxes2 = mesh2.boxes;
+	
+	if (normalize) {
+		size_t ibox;
+		norm1=0;
+		for (ibin=0;ibin<bin_bin.n_bin;ibin++) norm2[ibin] = 0.;
+		for (ibox=0;ibox<n_boxes1;ibox++) {
+			Box box1 = boxes1[ibox];
+			size_t n_obj = box1.n_obj;
+			size_t iobj;
+			for (iobj=0;iobj<n_obj;iobj++) norm1 += box1.weight[dim_weight*iobj];
+		}
+		for (ibox=0;ibox<n_boxes2;ibox++) {
+			Box box2 = boxes2[ibox];
+			size_t n_obj = box2.n_obj;
+			size_t iobj;
+			for (iobj=0;iobj<n_obj;iobj++) {
+				size_t bin = box2.bin[iobj];
+				if (visit_bin(bin)) norm2[bin] += box2.weight[dim_weight*iobj];
+			}
+		}
+	}
+
+	for (ibin=0;ibin<n_bin_tot;ibin++) count[ibin]=0.;
+	histo_t* threadcount;
+	
+#pragma omp parallel default(none)				\
+  shared(count,boxes1,boxes2,n_boxes1,n_boxes2,n_bin_tot,bin_main,bin_bin,dim_pos,dim_weight,pole,los,normalize,norm1,norm2) private(threadcount,leg)
+	{
+		size_t ibin,ibox1;
+		MULTI_TYPE multi_type = pole.type;
+		size_t n_ells = pole.n_ells;
+		threadcount = (histo_t*) malloc(n_bin_tot*sizeof(histo_t));
+		for (ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0.;
+		histo_t dist_los;
+		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance(los.los),los.n);		
+		
+#pragma omp for nowait schedule(dynamic)
+		for(ibox1=0;ibox1<n_boxes1;ibox1++) {
+			Box box1=boxes1[ibox1];
+			size_t ibox2;	
+			for(ibox2=0;ibox2<n_boxes2;ibox2++) {
+				Box box2=boxes2[ibox2];
+				if (visit_box(box1,box2)) {						
+					size_t n_obj1=box1.n_obj;
+					size_t n_obj2=box2.n_obj;
+					size_t iobj1;
+					for (iobj1=0;iobj1<n_obj1;iobj1++) {
+						histo_t* pos1=&(box1.pos[dim_pos*iobj1]);
+						histo_t* weight1=&(box1.weight[dim_weight*iobj1]);
+						if (los.type==LOS_ENDPOINT) dist_los=get_distance_losn(get_fast_distance(pos1),los.n);
+						size_t iobj2;
+						for (iobj2=0;iobj2<n_obj2;iobj2++) {
+							size_t bin = box2.bin[iobj2];
+							if (visit_bin(bin)) {
+								histo_t* pos2=&(box2.pos[dim_pos*iobj2]);
+								histo_t fast_dist_main = get_fast_distance_main(pos1,pos2);
+								histo_t fast_dist_aux = get_fast_distance_aux(pos1,pos2,los,&dist_los);
+								if (visit_main(fast_dist_main) && visit_aux(fast_dist_aux)) {
+									ibin = bin+bin_bin.n_bin*get_bin_index(get_distance_main(fast_dist_main),bin_main);
+									legendre_fast(fast_dist_aux,leg,multi_type);
+									histo_t weight=get_weight(weight1,&(box2.weight[dim_weight*iobj2]))/dist_los;
 									if (normalize) weight /= norm1*norm2[bin];
 									size_t ill;
 									for (ill=0;ill<n_ells;ill++) threadcount[ill+ibin*n_ells] += leg[ill]*weight;

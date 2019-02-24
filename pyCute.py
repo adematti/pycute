@@ -69,23 +69,34 @@ class PyCute(object):
 
 		return ells.tolist()
 	
-	def set_los(self,num=1,los='midpoint'):
+	def set_los(self,num=1,los='midpoint',n=0):
 	
 		vec = scipy.array([0],dtype=self.C_TYPE)
 		if los not in ['midpoint','endpoint']:
 			vec = scipy.array(los,dtype=self.C_TYPE)
 			los = 'custom'
 		
-		self.cute.set_los.argtypes = (ctypes.c_size_t,ctypes.c_char_p,ctypeslib.ndpointer(dtype=self.C_TYPE))
-		self.cute.set_los(num,los,vec)
-		
-		return los if los != 'custom' else vec
+		self.cute.set_los.argtypes = (ctypes.c_size_t,ctypes.c_char_p,ctypeslib.ndpointer(dtype=self.C_TYPE),ctypes.c_size_t)
+		self.cute.set_los(num,los,vec,n)
 
-	def set_2pcf_smu(self,sedges,muedges,position1,weight1,position2=None,weight2=None,sbinning='lin',mubinning='lin',ssize=None,musize=None,los='midpoint',nthreads=8):
+		return (los if los != 'custom' else vec,n)
+	
+	def set_n_poles(self,ells,nells=1):
+		if scipy.isscalar(ells[0]): ells = [ells]*nells
+		ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in range(nells)]
+		return ells
+	
+	def set_n_los(self,los,losn=0,nlos=1):
+		if isinstance(los,str) or (scipy.isscalar(los[0]) and not isinstance(los[0],str)): los = [los]*nlos
+		if scipy.isscalar(losn): losn = [losn]*nlos
+		los = [self.set_los(ilos+1,los=los[ilos],n=losn[ilos]) for ilos in range(nlos)]
+		return los
+
+	def set_2pcf_smu(self,sedges,muedges,position1,weight1,position2=None,weight2=None,sbinning='lin',mubinning='lin',ssize=None,musize=None,los='midpoint',losn=0,nthreads=8):
 
 		self.sedges = self.set_bin('main',edges=sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',edges=muedges,size=musize,binning=mubinning)
-		self.los = self.set_los(1,los=los)
+		self.los = self.set_los(1,los=los,n=losn)
 		cross = self.set_catalogues([position1,position2],[weight1,weight2])
 		
 		self.run_2pcf_smu(nthreads=nthreads)
@@ -156,12 +167,12 @@ class PyCute(object):
 		if degree: self.theta /= constants.degree
 		self.counts.shape = shape
 		
-	def set_2pcf_multi(self,sedges,position1,weight1,position2=None,weight2=None,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',nthreads=8):
+	def set_2pcf_multi(self,sedges,position1,weight1,position2=None,weight2=None,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',losn=0,nthreads=8):
 
 		self.sedges = self.set_bin('main',edges=sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',edges=muedges,size=1)
 		self.ells = self.set_pole(1,ells=ells)
-		self.los = self.set_los(1,los=los)
+		self.los = self.set_los(1,los=los,n=losn)
 		cross = self.set_catalogues([position1,position2],[weight1,weight2])
 		
 		self.run_2pcf_multi(nthreads=nthreads)
@@ -202,17 +213,15 @@ class PyCute(object):
 		self.mu.shape = shape
 		self.counts.shape = shape
 			
-	def set_3pcf_multi(self,sedges,position1,weight1,position2,weight2,position3=None,weight3=None,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',nthreads=8):
+	def set_3pcf_multi(self,sedges,position1,weight1,position2,weight2,position3=None,weight3=None,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',losn=0,nthreads=8):
 
 		self.sedges = self.set_bin('main',edges=sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',edges=muedges,size=1)
-		if scipy.isscalar(ells[0]): ells = [ells,ells]
-		self.ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in [0,1]]
+		self.ells = self.set_n_poles(ells,nells=2)
+		self.los = self.set_n_los(los,losn,nlos=2)
 		if (self.ells[-1] != self.ells[0]) and (position3 is None):
 			position3 = position2
 			weight3 = weight2
-		if isinstance(los,str) or (scipy.isscalar(los[0]) and not isinstance(los[0],str)): los = [los,los]
-		self.los = [self.set_los(ilos+1,los=los[ilos]) for ilos in [0,1]]
 		
 		self.set_catalogues([position1,position2,position3],[weight1,weight2,weight3])
 		self.run_3pcf_multi(nthreads=nthreads)
@@ -228,17 +237,15 @@ class PyCute(object):
 		self.cute.run_3pcf_multi(self.counts,nthreads)
 		self.counts.shape = shape
 
-	def set_3pcf_multi_double_los(self,sedges,position1,weight1,position2,weight2,position3=None,weight3=None,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',nthreads=8):
+	def set_3pcf_multi_double_los(self,sedges,position1,weight1,position2,weight2,position3=None,weight3=None,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',losn=0,nthreads=8):
 
 		self.sedges = self.set_bin('main',edges=sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',edges=muedges,size=1)
-		if scipy.isscalar(ells[0]): ells = [ells,ells]
-		self.ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in [0,1]]
+		self.ells = self.set_n_poles(ells,nells=2)
+		self.los = self.set_n_los(los,losn,nlos=2)
 		if (self.ells[-1] != self.ells[0]) and (position3 is None):
 			position3 = position2
 			weight3 = weight2
-		if isinstance(los,str) or (scipy.isscalar(los[0]) and not isinstance(los[0],str)): los = [los,los]
-		self.los = [self.set_los(ilos+1,los=los[ilos]) for ilos in [0,1]]
 		
 		self.set_catalogues([position1,position2,position3],[weight1,weight2,weight3])
 		self.run_3pcf_multi_double_los(nthreads=nthreads)
@@ -254,13 +261,13 @@ class PyCute(object):
 		self.cute.run_3pcf_multi_double_los(self.counts,nthreads)
 		self.counts.shape = shape
 		
-	def set_2pcf_multi_binned(self,sedges,binsize,position1,weight1,position2,weight2,bin2,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',normalize=False,nthreads=8):
+	def set_2pcf_multi_binned(self,sedges,binsize,position1,weight1,position2,weight2,bin2,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',losn=0,normalize=False,nthreads=8):
 
 		self.sedges = self.set_bin('main',edges=sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',edges=muedges,size=1)
 		self.binedges = self.set_bin('bin',size=binsize)
 		self.ells = self.set_pole(1,ells=ells)
-		self.los = self.set_los(1,los=los)
+		self.los = self.set_los(1,los=los,n=losn)
 		
 		self.set_catalogues([position1,position2],[weight1,weight2],[None,bin2])
 		self.run_2pcf_multi_binned(normalize=normalize,nthreads=nthreads)
@@ -276,15 +283,13 @@ class PyCute(object):
 		self.cute.run_2pcf_multi_binned(self.counts,normalize,nthreads)
 		self.counts.shape = shape
 		
-	def set_4pcf_multi_binned(self,sedges,binsize,position1,weight1,position2,weight2,bin2,position3,weight3,position4,weight4,bin4,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',normalize=False,nthreads=8):
+	def set_4pcf_multi_binned(self,sedges,binsize,position1,weight1,position2,weight2,bin2,position3,weight3,position4,weight4,bin4,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',losn=0,normalize=False,nthreads=8):
 
 		self.sedges = self.set_bin('main',edges=sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',edges=muedges,size=1)
 		self.binedges = self.set_bin('bin',size=binsize)
-		if scipy.isscalar(ells[0]): ells = [ells,ells]
-		self.ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in [0,1]]
-		if isinstance(los,str) or (scipy.isscalar(los[0]) and not isinstance(los[0],str)): los = [los,los]
-		self.los = [self.set_los(ilos+1,los=los[ilos]) for ilos in [0,1]]
+		self.ells = self.set_n_poles(ells,nells=2)
+		self.los = self.set_n_los(los,losn,nlos=2)
 		
 		self.set_catalogues([position1,position2,position3,position4],[weight1,weight2,weight3,weight4],[None,bin2,None,bin4])
 		self.run_4pcf_multi_binned(normalize=normalize,nthreads=nthreads)
@@ -300,13 +305,12 @@ class PyCute(object):
 		self.cute.run_4pcf_multi_binned(self.counts,normalize,nthreads)
 		self.counts.shape = shape
 
-	def set_2pcf_multi_radial_legendre(self,sedges,position1,weight1,position2,weight2,position3=None,weight3=None,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',nthreads=8):
+	def set_2pcf_multi_radial_legendre(self,sedges,position1,weight1,position2,weight2,position3=None,weight3=None,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',losn=0,nthreads=8):
 
 		self.sedges = self.set_bin('main',edges=sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',edges=muedges,size=1)
-		if scipy.isscalar(ells[0]): ells = [ells,ells]
-		self.ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in [0,1]]
-		self.los = self.set_los(1,los=los)
+		self.ells = self.set_n_poles(ells,nells=2)
+		self.los = self.set_los(1,los=los,n=losn)
 		
 		self.set_catalogues([position1,position2],[weight1,weight2])
 		self.run_2pcf_multi_radial_legendre(nthreads=nthreads)
@@ -322,13 +326,12 @@ class PyCute(object):
 		self.cute.run_2pcf_multi_radial_legendre(self.counts,nthreads)
 		self.counts.shape = shape
 
-	def set_2pcf_multi_angular_legendre(self,sedges,position1,weight1,position2,weight2,position3=None,weight3=None,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',nthreads=8):
+	def set_2pcf_multi_angular_legendre(self,sedges,position1,weight1,position2,weight2,position3=None,weight3=None,sbinning='lin',ssize=None,ells=[0,2,4,6,8,10,12],muedges=[-1.,1.],los='midpoint',losn=0,nthreads=8):
 
 		self.sedges = self.set_bin('main',edges=sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',edges=muedges,size=1)
-		if scipy.isscalar(ells[0]): ells = [ells,ells]
-		self.ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in [0,1]]
-		self.los = self.set_los(1,los=los)
+		self.ells = self.set_n_poles(ells,nells=2)
+		self.los = self.set_los(1,los=los,n=losn)
 		
 		self.set_catalogues([position1,position2],[weight1,weight2])
 		self.run_2pcf_multi_angular_legendre(nthreads=nthreads)
@@ -421,9 +424,7 @@ class PyCute(object):
 	
 	def integrate_radial_legendre(self,ells=None,nthreads=8):
 	
-		if ells is not None:
-			if scipy.isscalar(ells[0]): ells = [ells,ells]
-			self.ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in [0,1]]
+		if ells is not None: self.ells = self.set_n_poles(ells,nells=2)
 
 		shape = (len(self.sedges)-1,len(self.sedges)-1,len(self.ells[0]),len(self.ells[1]))
 		
@@ -438,9 +439,7 @@ class PyCute(object):
 	
 	def integrate_angular_legendre(self,ells=None,nthreads=8):
 	
-		if ells is not None:
-			if scipy.isscalar(ells[0]): ells = [ells,ells]
-			self.ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in [0,1]]
+		if ells is not None: self.ells = self.set_n_poles(ells,nells=2)
 
 		shape = (len(self.sedges)-1,len(self.sedges)-1,len(self.ells[0]),len(self.ells[1]))
 		
