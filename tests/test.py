@@ -9,7 +9,7 @@ from Corrfunc.theory.DD import DD
 from Corrfunc.mocks.DDtheta_mocks import DDtheta_mocks
 from kdcount import correlate
 from pycute import *
-from pycute.pyCute import wrap_phi
+from pycute.pycute import wrap_phi
 
 nthreads = 8
 ns = 10
@@ -240,7 +240,7 @@ def test_3pcf_multi_double_los():
 def save_reference_2pcf_multi_binned():
 	position1,weight1,bin1,position2,weight2,bin2 = load_catalogues(return_bin=True)
 	pycute = PyCute()
-	pycute.set_2pcf_multi_binned(sedges,binsize,position1,weight1,position2,weight2,bin2,ells=ells,nthreads=nthreads)
+	pycute.set_2pcf_multi_binned(sedges,binsize,position1,weight1,position2=position2,weight2=weight2,bin2=bin2,ells=ells,nthreads=nthreads)
 	scipy.save('ref_2pcf_multi_binned.npy',pycute.counts)
 		
 def reference_2pcf_multi_binned():
@@ -249,19 +249,19 @@ def reference_2pcf_multi_binned():
 def test_2pcf_multi_binned():
 	position1,weight1,bin1,position2,weight2,bin2 = load_catalogues(return_bin=True)
 	pycute = PyCute()
-	pycute.set_2pcf_multi_binned(sedges,binsize,position1,weight1,position2,weight2,bin2,ells=ells,nthreads=nthreads)
+	pycute.set_2pcf_multi_binned(sedges,binsize,position1,weight1,position2=position2,weight2=weight2,bin2=bin2,ells=ells,nthreads=nthreads)
 	countsref = reference_2pcf_multi_binned()
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 
 def test_4pcf_multi_binned():
 	position1,weight1,bin1,position2,weight2,bin2,position3,weight3,bin3,position4,weight4,bin4 = load_catalogues(4,return_bin=True)
 	pycute = PyCute()
-	pycute.set_2pcf_multi_binned(sedges,binsize,position1,weight1,position2,weight2,bin2,ells=ells,normalize=False,nthreads=nthreads)
+	pycute.set_2pcf_multi_binned(sedges,binsize,position1,weight1,position2=position2,weight2=weight2,bin2=bin2,ells=ells,nthreads=nthreads)
 	counts1 = pycute.counts
-	pycute.set_2pcf_multi_binned(sedges,binsize,position3,weight3,position4,weight4,bin4,ells=ells,normalize=True,nthreads=nthreads)
+	pycute.set_2pcf_multi_binned(sedges,binsize,position3,weight3,position2=position4,weight2=weight4,bin2=bin4,ells=ells,nthreads=nthreads)
 	counts2 = pycute.counts
 	countsref = scipy.einsum('irj,krl->ikjl',counts1,counts2)
-	pycute.set_4pcf_multi_binned(sedges,binsize,position1,weight1,position2,weight2,bin2,position3,weight3,position4,weight4,bin4,ells=ells,normalize=True,nthreads=nthreads)
+	pycute.set_4pcf_multi_binned(sedges,binsize,position1,weight1,position2=position2,weight2=weight2,bin2=bin2,position3=position3,weight3=weight3,position4=position4,weight4=weight4,bin4=bin4,ells=ells,nthreads=nthreads)
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 
 def comp_3pcf_multi():
@@ -440,6 +440,7 @@ save_reference_2pcf_multi_binned()
 save_reference_2pcf_multi_radial_legendre()
 save_reference_2pcf_multi_angular_legendre()
 """
+
 test_2pcf_s()
 test_2pcf_angular()
 test_2pcf_smu()
@@ -456,3 +457,5 @@ test_2pcf_multi_angular_legendre()
 test_integrate_legendre()
 test_integrate_radial_legendre()
 test_integrate_angular_legendre()
+
+
