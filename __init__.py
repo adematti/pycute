@@ -1,3 +1,5 @@
-from pyCute import PyCute
+__version__ = '0.1'
+__author__ = 'Arnaud de Mattia'
+__all__ = ['pycute','PyCute']
 
-__all__ = ['pyCute','PyCute']
+from pycute import PyCute

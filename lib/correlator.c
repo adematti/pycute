@@ -1437,48 +1437,24 @@ void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t count[],Pole pole,L
 	free(norm2);
 }
 */
-void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t count[],Pole pole,LOS los,_Bool normalize)
+void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t count[],Pole pole,LOS los,size_t tobin)
 {
 	set_fast_distance_main_limit();
 	set_fast_distance_aux_limit();
 	size_t n_bin_tot = bin_main.n_bin*bin_bin.n_bin*pole.n_ells;
 	size_t ibin;
 	histo_t leg[MAX_ELLS];
-	histo_t norm1=1.;
-	histo_t *norm2 = (histo_t*) malloc(bin_bin.n_bin*sizeof(histo_t));
-	//printf("%zu \n",cat1.n_obj);
 	
 	size_t n_boxes1 = mesh1.n_boxes;
 	Box* boxes1 = mesh1.boxes;
 	size_t n_boxes2 = mesh2.n_boxes;
 	Box* boxes2 = mesh2.boxes;
-	
-	if (normalize) {
-		size_t ibox;
-		norm1=0;
-		for (ibin=0;ibin<bin_bin.n_bin;ibin++) norm2[ibin] = 0.;
-		for (ibox=0;ibox<n_boxes1;ibox++) {
-			Box box1 = boxes1[ibox];
-			size_t n_obj = box1.n_obj;
-			size_t iobj;
-			for (iobj=0;iobj<n_obj;iobj++) norm1 += box1.weight[dim_weight*iobj];
-		}
-		for (ibox=0;ibox<n_boxes2;ibox++) {
-			Box box2 = boxes2[ibox];
-			size_t n_obj = box2.n_obj;
-			size_t iobj;
-			for (iobj=0;iobj<n_obj;iobj++) {
-				size_t bin = box2.bin[iobj];
-				if (visit_bin(bin)) norm2[bin] += box2.weight[dim_weight*iobj];
-			}
-		}
-	}
 
 	for (ibin=0;ibin<n_bin_tot;ibin++) count[ibin]=0.;
 	histo_t* threadcount;
 	
 #pragma omp parallel default(none)				\
-  shared(count,boxes1,boxes2,n_boxes1,n_boxes2,n_bin_tot,bin_main,bin_bin,dim_pos,dim_weight,pole,los,normalize,norm1,norm2) private(threadcount,leg)
+  shared(count,boxes1,boxes2,n_boxes1,n_boxes2,n_bin_tot,bin_main,bin_bin,dim_pos,dim_weight,pole,los,tobin) private(threadcount,leg)
 	{
 		size_t ibin,ibox1;
 		MULTI_TYPE multi_type = pole.type;
@@ -1498,25 +1474,30 @@ void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t count[],Pole pole,L
 					size_t n_obj1=box1.n_obj;
 					size_t n_obj2=box2.n_obj;
 					size_t iobj1;
+					size_t bin=0;
 					for (iobj1=0;iobj1<n_obj1;iobj1++) {
 						histo_t* pos1=&(box1.pos[dim_pos*iobj1]);
 						histo_t* weight1=&(box1.weight[dim_weight*iobj1]);
 						if (los.type==LOS_ENDPOINT) dist_los=get_distance_losn(get_fast_distance(pos1),los.n);
+						if (tobin==1) {
+							bin = box1.bin[iobj1];
+							if (!visit_bin(bin)) continue;
+						}
 						size_t iobj2;
 						for (iobj2=0;iobj2<n_obj2;iobj2++) {
-							size_t bin = box2.bin[iobj2];
-							if (visit_bin(bin)) {
-								histo_t* pos2=&(box2.pos[dim_pos*iobj2]);
-								histo_t fast_dist_main = get_fast_distance_main(pos1,pos2);
-								histo_t fast_dist_aux = get_fast_distance_aux(pos1,pos2,los,&dist_los);
-								if (visit_main(fast_dist_main) && visit_aux(fast_dist_aux)) {
-									ibin = bin+bin_bin.n_bin*get_bin_index(get_distance_main(fast_dist_main),bin_main);
-									legendre_fast(fast_dist_aux,leg,multi_type);
-									histo_t weight=get_weight(weight1,&(box2.weight[dim_weight*iobj2]))/dist_los;
-									if (normalize) weight /= norm1*norm2[bin];
-									size_t ill;
-									for (ill=0;ill<n_ells;ill++) threadcount[ill+ibin*n_ells] += leg[ill]*weight;
-								}
+							if (tobin==2) {
+								bin = box2.bin[iobj2];
+								if (!visit_bin(bin)) continue;
+							}
+							histo_t* pos2=&(box2.pos[dim_pos*iobj2]);
+							histo_t fast_dist_main = get_fast_distance_main(pos1,pos2);
+							histo_t fast_dist_aux = get_fast_distance_aux(pos1,pos2,los,&dist_los);
+							if (visit_main(fast_dist_main) && visit_aux(fast_dist_aux)) {
+								ibin = bin+bin_bin.n_bin*get_bin_index(get_distance_main(fast_dist_main),bin_main);
+								legendre_fast(fast_dist_aux,leg,multi_type);
+								histo_t weight=get_weight(weight1,&(box2.weight[dim_weight*iobj2]))/dist_los;
+								size_t ill;
+								for (ill=0;ill<n_ells;ill++) threadcount[ill+ibin*n_ells] += leg[ill]*weight;
 							}
 						}
 					}
@@ -1529,10 +1510,9 @@ void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t count[],Pole pole,L
 			free(threadcount);
 		}
 	} //end omp parallel
-	free(norm2);
 }
 
-void cross_4pcf_multi_binned(Mesh *meshs,histo_t count[],Pole *poles,LOS *los,_Bool normalize)
+void cross_4pcf_multi_binned(Mesh *meshs,histo_t count[],Pole *poles,LOS *los,size_t *tobin)
 {
 	size_t n_bin_main = bin_main.n_bin;
 	size_t n_bin_bin = bin_bin.n_bin;
@@ -1542,9 +1522,9 @@ void cross_4pcf_multi_binned(Mesh *meshs,histo_t count[],Pole *poles,LOS *los,_B
 	size_t n_bin_2pcf2 = n_bin_main*n_bin_bin*n_ells2;
 	size_t n_bin_tot = n_bin_main*n_bin_main*n_ells1*n_ells2;
 	histo_t *count1 = (histo_t*) malloc(n_bin_2pcf1*sizeof(histo_t));
-	cross_2pcf_multi_binned(meshs[0],meshs[1],count1,poles[0],los[0],0);
+	cross_2pcf_multi_binned(meshs[0],meshs[1],count1,poles[0],los[0],tobin[0]);
 	histo_t *count2 = (histo_t*) malloc(n_bin_2pcf2*sizeof(histo_t));
-	cross_2pcf_multi_binned(meshs[2],meshs[3],count2,poles[1],los[1],normalize);
+	cross_2pcf_multi_binned(meshs[2],meshs[3],count2,poles[1],los[1],tobin[1]-2);
 	
 	size_t ibin;
 	for (ibin=0;ibin<n_bin_tot;ibin++) count[ibin]=0.;

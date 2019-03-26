@@ -83,9 +83,9 @@ void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[],Pole *poles,LOS
 
 void cross_3pcf_multi_double_los(Mesh* meshs,size_t n_meshs,histo_t count[],Pole *poles,LOS *los);
 
-void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t count[],Pole pole,LOS los,_Bool normalize);
+void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t count[],Pole pole,LOS los,size_t tobin);
 
-void cross_4pcf_multi_binned(Mesh *meshs,histo_t count[],Pole *poles,LOS *los,_Bool normalize);
+void cross_4pcf_multi_binned(Mesh *meshs,histo_t count[],Pole *poles,LOS *los,size_t *tobin);
 
 #ifdef _DEBUG
 //Debug files output

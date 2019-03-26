@@ -267,10 +267,12 @@ void print_catalogs()
 	}
 }
 
-void print_normalize(_Bool normalize)
+void print_tobin(size_t *tobin,size_t nbin)
 {
-	if (normalize) printf(" - normalize: yes\n");
-	else printf(" - normalize: no\n");
+	printf(" - cat to bin: ");
+	size_t ibin;
+	for (ibin=0;ibin<nbin;ibin++) printf("%zu ",tobin[ibin]);
+	printf("\n");
 }
 
 void set_catalog(size_t num,histo_t *p,histo_t *w,size_t *bin,size_t n,size_t dim_b,size_t dim_w)
@@ -285,7 +287,6 @@ void set_catalog(size_t num,histo_t *p,histo_t *w,size_t *bin,size_t n,size_t di
 	dim_box=dim_b;
 	dim_pos=dim_box;
 	dim_weight=dim_w;
-
 }
 
 void set_num_catalogs()
@@ -481,14 +482,14 @@ void run_3pcf_multi_double_los(histo_t *count,size_t num_threads)
 	free_meshs(meshs,n_cats);
 }
 
-void run_2pcf_multi_binned(histo_t *count,_Bool normalize,size_t num_threads)
+void run_2pcf_multi_binned(histo_t *count,size_t tobin,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
 #ifdef _VERBOSE
 	printf("*** 2-point binned correlation function multipoles\n");
 	print_catalogs();
-	print_normalize(normalize);
+	print_tobin(&tobin,1);
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
 	set_num_threads(num_threads);
@@ -496,7 +497,7 @@ void run_2pcf_multi_binned(histo_t *count,_Bool normalize,size_t num_threads)
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	cross_2pcf_multi_binned(meshs[0],meshs[1],count,poles[0],los[0],normalize);
+	cross_2pcf_multi_binned(meshs[0],meshs[1],count,poles[0],los[0],tobin);
 #ifdef _VERBOSE
 	printf("*** Cleaning up\n");
 	timer(1);
@@ -505,14 +506,14 @@ void run_2pcf_multi_binned(histo_t *count,_Bool normalize,size_t num_threads)
 	free_meshs(meshs,n_cats);
 }
 
-void run_4pcf_multi_binned(histo_t *count,_Bool normalize,size_t num_threads)
+void run_4pcf_multi_binned(histo_t *count,size_t *tobin,size_t num_threads)
 {
 	timer(0);
 	set_num_catalogs();
 #ifdef _VERBOSE
 	printf("*** 4-point binned correlation function multipoles\n");
 	print_catalogs();
-	print_normalize(normalize);
+	print_tobin(tobin,2);
 #endif //_VERBOSE
 	corr_type = CORR_SMU;
 	set_num_threads(num_threads);
@@ -520,7 +521,7 @@ void run_4pcf_multi_binned(histo_t *count,_Bool normalize,size_t num_threads)
 #ifdef _VERBOSE
 	timer(1);
 #endif //_VERBOSE
-	cross_4pcf_multi_binned(meshs,count,poles,los,normalize);
+	cross_4pcf_multi_binned(meshs,count,poles,los,tobin);
 #ifdef _VERBOSE
 	printf("*** Cleaning up\n");
 	timer(1);
