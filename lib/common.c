@@ -263,9 +263,7 @@ void free_catalog(Catalog cat)
 
 ///////////////////////////
 
-#ifdef _DEBUG
-
-void write_mesh(Mehs mesh,char *fn)
+void write_mesh(Mesh mesh,char *fn)
 {
 	//////
 	// Writes pixel map into file fn, only used for debugging
@@ -278,8 +276,8 @@ void write_mesh(Mehs mesh,char *fn)
 			size_t iobj;
 			for(iobj=0;iobj<mesh.boxes[ibox].n_obj;iobj++) {
 				size_t idim;
-				for(idim=0;idim<dim_pos;idim++) fprintf(fr,"%f ",boxes[idim].pos[dim_pos*iobj+idim]);
-				for(idim=0;idim<dim_weight;idim++) fprintf(fr,"%f ",boxes[idim].weight[dim_weight*iobj+idim]);
+				for(idim=0;idim<dim_pos;idim++) fprintf(fr,"%f ",mesh.boxes[idim].pos[dim_pos*iobj+idim]);
+				for(idim=0;idim<dim_weight;idim++) fprintf(fr,"%f ",mesh.boxes[idim].weight[dim_weight*iobj+idim]);
 				fprintf(fr,"\n");
 			}
 		}
@@ -318,5 +316,3 @@ void write_histo(size_t num_histo,histo_t* hist,char *fn)
 	}
 	fclose(fr);
 }
-
-#endif //_DEBUG

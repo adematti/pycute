@@ -28,6 +28,11 @@ class PyCute(object):
 		self.cute = ctypes.CDLL(self.PATH_CUTE,mode=ctypes.RTLD_GLOBAL)
 		self.clear()
 
+	def set_verbosity(self,mode='info'):
+		self.cute.set_verbosity.argtypes = (ctypes.c_char_p,)
+		self.cute.set_verbosity(mode)
+		self._verbose = mode
+
 	def set_bin(self,mode,edges=None,size=None,binning='lin'):
 
 		if mode == 'bin':
@@ -426,6 +431,7 @@ class PyCute(object):
 		self.cute.clear_catalogs()
 		self.cute.clear_bins()
 		self.cute.clear_poles()
+		self.set_verbosity()
 	
 	def integrate_legendre(self,ells=None,nthreads=8):
 	

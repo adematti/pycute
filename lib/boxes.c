@@ -115,9 +115,9 @@ void optimal_nside()
 	box2main(bound_max,bound_max_main);
 
 	for (idim=0;idim<dim_box;idim++) {
-#ifdef _DEBUG
+	if (verbose == DEBUG) {
 		printf(" - box size %.3f %.3f -> %.3f %.3f; max main %.3f\n",bound_min[idim],bound_max[idim],bound_min_main[idim],bound_max_main[idim],bin_main.max);
-#endif 
+	}
 		n_side[idim]=(size_t)MIN((NUMBER_BOXES*fabs((bound_max_main[idim]-bound_min_main[idim])/bin_main.max))+1,max_boxes);
 		n_boxes*=n_side[idim];
 	}
@@ -267,9 +267,7 @@ void init_params(Catalog *cats,size_t n_cats)
 		l_box[idim]=bound_max[idim]-bound_min[idim];
 	}
 	optimal_nside();
-#ifdef _VERBOSE
-	print_boxes();
-#endif //_VERBOSE
+	if (verbose == INFO) print_boxes();
 }
 
 static void set_visit(Box box,size_t ibox)
@@ -370,9 +368,7 @@ Mesh catalog_to_mesh(Catalog cat)
 			n_full++;
 		}
 	}
-#ifdef _VERBOSE
-	printf(" - there are %zu objects in %zu out of %zu boxes\n",cat.n_obj,n_full,n_boxes);
-#endif //_VERBOSE
+	if (verbose == INFO) printf(" - there are %zu objects in %zu out of %zu boxes\n",cat.n_obj,n_full,n_boxes);
 	Box *boxes = init_boxes(n_full);
 	for(ibox=0;ibox<n_full;ibox++) {
 		size_t ifull = full[ibox];
@@ -422,15 +418,15 @@ Mesh catalog_to_mesh(Catalog cat)
 void set_meshs(Catalog *cats,Mesh *meshs,size_t n_cats)
 {
 	size_t icat;
-#ifdef _DEBUG
-	for (icat=0;icat<n_cats;icat++) write_catalog(cats[icat],"debug_cat1.dat");
-#endif //_DEBUG
+	if (verbose == DEBUG) {
+		for (icat=0;icat<n_cats;icat++) write_catalog(cats[icat],"debug_cat1.dat");
+	}
 	for (icat=0;icat<n_cats;icat++) set_catalog_box(&cats[icat]);
 	init_params(cats,n_cats);
 	for (icat=0;icat<n_cats;icat++) meshs[icat] = catalog_to_mesh(cats[icat]);
-#ifdef _DEBUG
-	for (icat=0;icat<n_cats;icat++) write_mesh(meshs[icat],"debug_mesh1.dat");
-#endif //_DEBUG
+	if (verbose == DEBUG) {
+		for (icat=0;icat<n_cats;icat++) write_mesh(meshs[icat],"debug_mesh1.dat");
+	}
 }
 
 void free_meshs(Mesh *meshs,size_t n_meshs)

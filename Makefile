@@ -3,8 +3,7 @@
 
 EXEC = cute
 
-DEFINEOPTIONS = -D_VERBOSE
-#DEFINEOPTIONS += -D_DEBUG
+DEFINEOPTIONS =
 #DEFINEOPTIONS += -D_FLOAT32
 #GSL options
 GSL_INC = /opt/rhel-6.x86_64/gnu4.6.2/gsl/1.15/include

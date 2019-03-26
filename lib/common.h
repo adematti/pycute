@@ -87,13 +87,11 @@ void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t count[],Pole pole,L
 
 void cross_4pcf_multi_binned(Mesh *meshs,histo_t count[],Pole *poles,LOS *los,size_t *tobin);
 
-#ifdef _DEBUG
 //Debug files output
-void write_mesh(Mehs mesh,char *fn);
+void write_mesh(Mesh mesh,char *fn);
 
 void write_catalog(Catalog cat,char *fn);
 
 void write_histo(size_t num_histo,histo_t* hist,char *fn);
-#endif //_DEBUG
 
 #endif //_CUTE_COMMON_

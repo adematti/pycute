@@ -429,6 +429,20 @@ def test_integrate_angular_legendre():
 	integralref = ref_integrate_angular_legendre(pycute,ells=[ells,ells])
 	testing.assert_allclose(integralref,pycute.integral,rtol=1e-7,atol=1e-7)
 
+def test_verbosity():
+	position1,weight1,position2,weight2 = load_catalogues()
+	print('No output in between <<')
+	pycute = PyCute()
+	pycute.set_verbosity('quiet')
+	pycute.set_2pcf_s(sedges,position1,weight1,position2=position2,weight2=weight2,nthreads=nthreads)
+	print('>>')
+	countsref = reference_2pcf_s(sedges,position1,weight1,position2=position2,weight2=weight2)
+	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
+	"""
+	pycute = PyCute()
+	pycute.set_verbosity('debug')
+	pycute.set_2pcf_s(sedges,position1,weight1,position2=position2,weight2=weight2,nthreads=nthreads)
+	"""
 	
 
 """
@@ -455,5 +469,5 @@ test_2pcf_multi_angular_legendre()
 test_integrate_legendre()
 test_integrate_radial_legendre()
 test_integrate_angular_legendre()
-
+test_verbosity()
 

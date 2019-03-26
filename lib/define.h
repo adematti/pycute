@@ -38,6 +38,7 @@ typedef float histo_t;
 typedef double histo_t;
 #endif //_FLOAT32
 
+typedef enum {QUIET, INFO, DEBUG} VERBOSITY;
 typedef enum {BIN_LIN, BIN_LOG, BIN_CUSTOM, BIN_BIN} BIN_TYPE;
 typedef enum {CORR_SMU, CORR_ANGULAR, CORR_SCOS} CORR_TYPE;
 typedef enum {LOS_MIDPOINT, LOS_ENDPOINT, LOS_FIRSTPOINT, LOS_CUSTOM} LOS_TYPE;
@@ -87,6 +88,7 @@ typedef struct {
 	size_t n;
 } LOS;
 
+VERBOSITY verbose;
 CORR_TYPE corr_type;
 Bin bin_main,bin_aux,bin_bin;
 size_t dim_box,dim_weight,dim_pos;
