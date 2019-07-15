@@ -56,7 +56,7 @@ void cat2box(histo_t cat[],histo_t box[])
 
 	if ((corr_type==CORR_SMU)||(corr_type==CORR_SCOS)) {
 		size_t idim;
-		for(idim=0;idim<dim_box;idim++) box[idim]=cat[idim];
+		for (idim=0;idim<dim_box;idim++) box[idim]=cat[idim];
 	}
 	else if (corr_type==CORR_ANGULAR) {
 		box[0]=cos(cat[0]);
@@ -71,7 +71,7 @@ void box2main(histo_t box[],histo_t main[])
 
 	if ((corr_type==CORR_SMU)||(corr_type==CORR_SCOS)) {
 		size_t idim;
-		for(idim=0;idim<dim_box;idim++) main[idim]=box[idim];
+		for (idim=0;idim<dim_box;idim++) main[idim]=box[idim];
 	}
 	else if (corr_type==CORR_ANGULAR) {
 		main[0]=acos(box[0]);
@@ -87,7 +87,7 @@ void box2pos(histo_t box[],histo_t pos[])
 
 	if ((corr_type==CORR_SMU)||(corr_type==CORR_SCOS)) {
 		size_t idim;
-		for(idim=0;idim<dim_pos;idim++) pos[idim]=box[idim];
+		for (idim=0;idim<dim_pos;idim++) pos[idim]=box[idim];
 	}
 	else if (corr_type==CORR_ANGULAR) {
 		histo_t sin_theta=my_sqrt(1.-box[0]*box[0]);
@@ -133,7 +133,7 @@ void ind2box(size_t index[],histo_t box[])
 	// Returns box position
 
 	size_t idim=0;
-	for(idim=0;idim<dim_box;idim++) box[idim]=(histo_t)(index[idim]*l_box[idim]/n_side[idim]+bound_min[idim]);
+	for (idim=0;idim<dim_box;idim++) box[idim]=(histo_t)(index[idim]*l_box[idim]/n_side[idim]+bound_min[idim]);
 
 }
 
@@ -143,7 +143,7 @@ void box2ind(histo_t box[],size_t index[])
 	// Returns box index
 
 	size_t idim;
-	for(idim=0;idim<dim_box;idim++) index[idim]=(size_t)(floor((box[idim]-bound_min[idim])/l_box[idim]*n_side[idim]));
+	for (idim=0;idim<dim_box;idim++) index[idim]=(size_t)(floor((box[idim]-bound_min[idim])/l_box[idim]*n_side[idim]));
 
 }
 
@@ -157,7 +157,7 @@ void ind2pos(size_t index[],histo_t pos[])
 void free_mesh(Mesh mesh)
 {
 	size_t ibox;
-	for(ibox=0;ibox<mesh.n_boxes;ibox++) {
+	for (ibox=0;ibox<mesh.n_boxes;ibox++) {
 		if(mesh.boxes[ibox].n_obj>0) {
 			free(mesh.boxes[ibox].pos);
 			free(mesh.boxes[ibox].weight);
@@ -186,7 +186,7 @@ Box* init_boxes(size_t n_boxes)
 	Box* boxes = (Box *) malloc(n_boxes*sizeof(Box));
 	if (boxes==NULL) error_mem_out();
 
-	for(ibox=0;ibox<n_boxes;ibox++) {
+	for (ibox=0;ibox<n_boxes;ibox++) {
 		boxes[ibox].n_obj=0;
 		boxes[ibox].pos=NULL;
 		boxes[ibox].weight=NULL;
@@ -205,7 +205,7 @@ void set_catalog_box(Catalog *cat)
 	size_t n_tot=(*cat).n_obj*dim_box;	
 	(*cat).box=(histo_t *) malloc(n_tot*sizeof(histo_t));
 
-	for(iobj=0;iobj<n_tot;iobj+=dim_box) {
+	for (iobj=0;iobj<n_tot;iobj+=dim_box) {
 		cat2box(&((*cat).pos[iobj]),&((*cat).box[iobj]));
 	}
 }
@@ -242,7 +242,7 @@ void init_params(Catalog *cats,size_t n_cats)
 	for (icat=0;icat<n_cats;icat++) {
 		Catalog cat = cats[icat];
 		n_obj_tot += cat.n_obj;
-		for(iobj=0;iobj<cat.n_obj;iobj++) {
+		for (iobj=0;iobj<cat.n_obj;iobj++) {
 			for (idim=0;idim<dim_box;idim++) {
 				bound_min[idim] = MIN(bound_min[idim],cat.box[iobj*dim_box+idim]);
 				bound_max[idim] = MAX(bound_max[idim],cat.box[iobj*dim_box+idim]);
@@ -276,7 +276,7 @@ static void set_visit(Box box,size_t ibox)
 	unravel_index(ibox,n_side,dim_box,box.index);
 
 	if ((corr_type==CORR_SMU)||(corr_type==CORR_SCOS)) {
-		for(idim=0;idim<dim_box;idim++) {
+		for (idim=0;idim<dim_box;idim++) {
 			long nbox=(long)(floor(bin_main.max/l_box[idim]*n_side[idim])+1);
 			box.visit_min[idim]=(size_t)MAX((long)box.index[idim]-nbox,0); //long for diff
 			box.visit_max[idim]=(size_t)MIN((long)box.index[idim]+nbox,n_side[idim]-1);
@@ -288,7 +288,7 @@ static void set_visit(Box box,size_t ibox)
 		histo_t* thetaphi_high=(histo_t *) malloc(dim_box*sizeof(histo_t));
 		histo_t* thetaphi_low=(histo_t *) malloc(dim_box*sizeof(histo_t));
 		ind2box(box.index,thetaphi_low);
-		for(idim=0;idim<dim_box;idim++) thetaphi_high[idim]=thetaphi_low[idim]+l_box[idim]/n_side[idim];
+		for (idim=0;idim<dim_box;idim++) thetaphi_high[idim]=thetaphi_low[idim]+l_box[idim]/n_side[idim];
 		box2main(thetaphi_low,thetaphi_low);
 		box2main(thetaphi_high,thetaphi_high); //thetaphi_low[0] is theta min (up), thetaphi_high[0] is theta max (down)
 	
@@ -349,19 +349,19 @@ Mesh catalog_to_mesh(Catalog cat)
 	size_t *index=(size_t *) malloc(dim_box*sizeof(size_t));
 	histo_t *pos=(histo_t *) malloc(dim_pos*sizeof(histo_t));
 	
-	size_t *n_obj=(size_t *)malloc(n_boxes*sizeof(size_t));
-	for(ibox=0;ibox<n_boxes;ibox++) n_obj[ibox]=0;
+	size_t *n_obj=(size_t *) malloc(n_boxes*sizeof(size_t));
+	for (ibox=0;ibox<n_boxes;ibox++) n_obj[ibox]=0;
 	size_t n_full=0;
-	for(iobj=0;iobj<cat.n_obj;iobj++) {
+	for (iobj=0;iobj<cat.n_obj;iobj++) {
 		box2ind(&(cat.box[iobj*dim_box]),index);
 		size_t ibox=ravel_index(index,n_side,dim_box);
 		if(n_obj[ibox]==0) n_full++;
 		n_obj[ibox]++;
 	}
-	size_t *indices = (size_t *)malloc(n_boxes*sizeof(size_t));
-	size_t *full = (size_t *)malloc(n_full*sizeof(size_t));
+	size_t *indices = (size_t *) malloc(n_boxes*sizeof(size_t));
+	size_t *full = (size_t *) malloc(n_full*sizeof(size_t));
 	n_full=0;
-	for(ibox=0;ibox<n_boxes;ibox++) {
+	for (ibox=0;ibox<n_boxes;ibox++) {
 		if(n_obj[ibox]>0) {
 			indices[ibox] = n_full;
 			full[n_full] = ibox;
@@ -370,19 +370,19 @@ Mesh catalog_to_mesh(Catalog cat)
 	}
 	if (verbose == INFO) printf(" - there are %zu objects in %zu out of %zu boxes\n",cat.n_obj,n_full,n_boxes);
 	Box *boxes = init_boxes(n_full);
-	for(ibox=0;ibox<n_full;ibox++) {
+	for (ibox=0;ibox<n_full;ibox++) {
 		size_t ifull = full[ibox];
-		boxes[ibox].pos=(histo_t *)malloc(dim_pos*n_obj[ifull]*sizeof(histo_t));
+		boxes[ibox].pos=(histo_t *) malloc(dim_pos*n_obj[ifull]*sizeof(histo_t));
 		if(boxes[ibox].pos==NULL) error_mem_out();
-		boxes[ibox].weight=(histo_t *)malloc(dim_weight*n_obj[ifull]*sizeof(histo_t));
+		boxes[ibox].weight=(histo_t *) malloc(dim_weight*n_obj[ifull]*sizeof(histo_t));
 		if(boxes[ibox].weight==NULL) error_mem_out();
-		boxes[ibox].bin=(size_t *)malloc(n_obj[ifull]*sizeof(size_t));
+		boxes[ibox].bin=(size_t *) malloc(n_obj[ifull]*sizeof(size_t));
 		if(boxes[ibox].bin==NULL) error_mem_out();
-		boxes[ibox].index=(size_t *)malloc(dim_box*sizeof(size_t));
+		boxes[ibox].index=(size_t *) malloc(dim_box*sizeof(size_t));
 		if(boxes[ibox].index==NULL) error_mem_out();
-		boxes[ibox].visit_min=(size_t *)malloc(dim_box*sizeof(size_t));
+		boxes[ibox].visit_min=(size_t *) malloc(dim_box*sizeof(size_t));
 		if(boxes[ibox].visit_min==NULL) error_mem_out();
-		boxes[ibox].visit_max=(size_t *)malloc(dim_box*sizeof(size_t));
+		boxes[ibox].visit_max=(size_t *) malloc(dim_box*sizeof(size_t));
 		if(boxes[ibox].visit_max==NULL) error_mem_out();
 		boxes[ibox].n_obj=0;
 		set_visit(boxes[ibox],ifull);
@@ -391,7 +391,7 @@ Mesh catalog_to_mesh(Catalog cat)
 	}
 	free(n_obj);
 	
-	for(iobj=0;iobj<cat.n_obj;iobj++) {
+	for (iobj=0;iobj<cat.n_obj;iobj++) {
 		box2ind(&(cat.box[dim_box*iobj]),index);
 		size_t ibox=indices[ravel_index(index,n_side,dim_box)];
 		size_t n_obj=boxes[ibox].n_obj;

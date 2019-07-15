@@ -83,7 +83,7 @@ size_t ravel_index(size_t ind[],size_t dim[],size_t n)
 	size_t index=ind[0];
 	size_t prod=1;
 	size_t ii;
-	for(ii=1;ii<n;ii++) {
+	for (ii=1;ii<n;ii++) {
 		prod*=dim[ii-1];
 		index+=prod*ind[ii];
 	}
@@ -94,13 +94,12 @@ size_t* unravel_index(size_t ind,size_t dim[],size_t n,size_t index[])
 {
 	index[0]=ind%dim[0];
 	size_t ii;
-	for(ii=1;ii<n;ii++) {
+	for (ii=1;ii<n;ii++) {
 		ind=(ind-index[ii-1])/dim[ii-1];
 		index[ii]=ind%dim[ii];
 	}
 	return index;
 }
-
 
 size_t get_dichotomy_index(histo_t x,histo_t *tab,size_t min,size_t max)
 {
@@ -253,14 +252,6 @@ void error_open_file(char *fname)
 	exit(1);
 }
 
-
-void free_catalog(Catalog cat)
-{
-	free(cat.pos);
-	free(cat.weight);
-	free(cat.box);
-}
-
 ///////////////////////////
 
 void write_mesh(Mesh mesh,char *fn)
@@ -271,13 +262,13 @@ void write_mesh(Mesh mesh,char *fn)
 	fr=fopen(fn,"w");
 	if(fr==NULL) error_open_file(fn);
 	size_t ibox;
-	for(ibox=0;ibox<mesh.n_boxes;ibox++) {
+	for (ibox=0;ibox<mesh.n_boxes;ibox++) {
 		if(mesh.boxes[ibox].n_obj>0) {
 			size_t iobj;
-			for(iobj=0;iobj<mesh.boxes[ibox].n_obj;iobj++) {
+			for (iobj=0;iobj<mesh.boxes[ibox].n_obj;iobj++) {
 				size_t idim;
-				for(idim=0;idim<dim_pos;idim++) fprintf(fr,"%f ",mesh.boxes[idim].pos[dim_pos*iobj+idim]);
-				for(idim=0;idim<dim_weight;idim++) fprintf(fr,"%f ",mesh.boxes[idim].weight[dim_weight*iobj+idim]);
+				for (idim=0;idim<dim_pos;idim++) fprintf(fr,"%f ",mesh.boxes[idim].pos[dim_pos*iobj+idim]);
+				for (idim=0;idim<dim_weight;idim++) fprintf(fr,"%f ",mesh.boxes[idim].weight[dim_weight*iobj+idim]);
 				fprintf(fr,"\n");
 			}
 		}
@@ -293,11 +284,11 @@ void write_catalog(Catalog cat,char *fn)
 	size_t jj;
 	fr=fopen(fn,"w");
 	if(fr==NULL) error_open_file(fn);
-	for(jj=0;jj<cat.n_obj;jj++) {
+	for (jj=0;jj<cat.n_obj;jj++) {
 		size_t kk;
 		fprintf(fr,"%zu ",jj);
-		for(kk=0;kk<dim_box;kk++) fprintf(fr,"%f ",cat.pos[dim_box*jj+kk]);
-		for(kk=0;kk<dim_weight;kk++) fprintf(fr,"%f ",cat.weight[dim_weight*jj+kk]);
+		for (kk=0;kk<dim_box;kk++) fprintf(fr,"%f ",cat.pos[dim_box*jj+kk]);
+		for (kk=0;kk<dim_weight;kk++) fprintf(fr,"%f ",cat.weight[dim_weight*jj+kk]);
 		fprintf(fr,"\n");
 	}
 	fclose(fr);
@@ -311,7 +302,7 @@ void write_histo(size_t num_histo,histo_t* hist,char *fn)
 	size_t ii;
 	fr=fopen(fn,"w");
 	if(fr==NULL) error_open_file(fn);
-	for(ii=0;ii<num_histo;ii++) {
+	for (ii=0;ii<num_histo;ii++) {
 		fprintf(fr,"%f\n",hist[ii]);
 	}
 	fclose(fr);

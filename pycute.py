@@ -1,5 +1,3 @@
-# coding: utf8
-
 import os
 import ctypes
 import scipy
@@ -56,7 +54,7 @@ class PyCute(object):
 		self._edges[mode] = edges
 	
 		return self._edges[mode].copy()
-	
+
 	def set_pole(self,num=1,ells=[0,2,4,6,8,10,12]):
 
 		nells = len(ells)
@@ -90,15 +88,15 @@ class PyCute(object):
 
 		return tuple(self._los[num])
 	
-	def set_n_poles(self,ells,nells=1):
-		if scipy.isscalar(ells[0]): ells = [ells]*nells
-		ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in range(nells)]
+	def set_n_poles(self,ells,n=1):
+		if scipy.isscalar(ells[0]): ells = [ells]*n
+		ells = [self.set_pole(ill+1,ells=ells[ill]) for ill in range(n)]
 		return ells
 	
-	def set_n_los(self,los,losn=0,nlos=1):
-		if isinstance(los,str) or (scipy.isscalar(los[0]) and not isinstance(los[0],str)): los = [los]*nlos
-		if scipy.isscalar(losn): losn = [losn]*nlos
-		los = [self.set_los(ilos+1,los=los[ilos],n=losn[ilos]) for ilos in range(nlos)]
+	def set_n_los(self,los,losn=0,n=1):
+		if isinstance(los,(str,unicode)) or (scipy.isscalar(los[0]) and not isinstance(los[0],str)): los = [los]*n
+		if scipy.isscalar(losn): losn = [losn]*n
+		los = [self.set_los(ilos+1,los=los[ilos],n=losn[ilos]) for ilos in range(n)]
 		return los
 	
 	def set_tobin(self,bins,tobin=None,maxtobin=1):
@@ -106,7 +104,7 @@ class PyCute(object):
 			tobin = [ibin+1 for ibin,bin in enumerate(bins) if bin is not None]
 		else:
 			if scipy.isscalar(tobin): tobin = [tobin]
-			for _tobin in tobin: assert (_tobin >= 1) and (_tobin <= len(bins)) and (bins[_tobin-1] is not None)
+			for tobin_ in tobin: assert (tobin_ >= 1) and (tobin_ <= len(bins)) and (bins[tobin_-1] is not None)
 		assert (len(tobin) <= maxtobin)		
 		if len(tobin) == 1: return tobin[0]
 		return tobin
@@ -236,8 +234,8 @@ class PyCute(object):
 
 		self.sedges = self.set_bin('main',edges=sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',edges=muedges,size=1)
-		self.ells = self.set_n_poles(ells,nells=2)
-		self.los = self.set_n_los(los,losn,nlos=2)
+		self.ells = self.set_n_poles(ells,n=2)
+		self.los = self.set_n_los(los,losn,n=2)
 		if (self.ells[-1] != self.ells[0]) and (position3 is None):
 			position3 = position2
 			weight3 = weight2
@@ -260,8 +258,8 @@ class PyCute(object):
 
 		self.sedges = self.set_bin('main',edges=sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',edges=muedges,size=1)
-		self.ells = self.set_n_poles(ells,nells=2)
-		self.los = self.set_n_los(los,losn,nlos=2)
+		self.ells = self.set_n_poles(ells,n=2)
+		self.los = self.set_n_los(los,losn,n=2)
 		if (self.ells[-1] != self.ells[0]) and (position3 is None):
 			position3 = position2
 			weight3 = weight2
@@ -308,8 +306,8 @@ class PyCute(object):
 		self.sedges = self.set_bin('main',edges=sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',edges=muedges,size=1)
 		self.binedges = self.set_bin('bin',size=binsize)
-		self.ells = self.set_n_poles(ells,nells=2)
-		self.los = self.set_n_los(los,losn,nlos=2)
+		self.ells = self.set_n_poles(ells,n=2)
+		self.los = self.set_n_los(los,losn,n=2)
 		self.tobin = self.set_tobin([bin1,bin2,bin3,bin4],tobin=tobin,maxtobin=2)
 		
 		self.set_catalogues([position1,position2,position3,position4],[weight1,weight2,weight3,weight4],[bin1,bin2,bin3,bin4])
@@ -331,7 +329,7 @@ class PyCute(object):
 
 		self.sedges = self.set_bin('main',edges=sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',edges=muedges,size=1)
-		self.ells = self.set_n_poles(ells,nells=2)
+		self.ells = self.set_n_poles(ells,n=2)
 		self.los = self.set_los(1,los=los,n=losn)
 		
 		self.set_catalogues([position1,position2],[weight1,weight2])
@@ -352,7 +350,7 @@ class PyCute(object):
 
 		self.sedges = self.set_bin('main',edges=sedges,size=ssize,binning=sbinning)
 		self.muedges = self.set_bin('aux',edges=muedges,size=1)
-		self.ells = self.set_n_poles(ells,nells=2)
+		self.ells = self.set_n_poles(ells,n=2)
 		self.los = self.set_los(1,los=los,n=losn)
 		
 		self.set_catalogues([position1,position2],[weight1,weight2])
@@ -450,7 +448,7 @@ class PyCute(object):
 	
 	def integrate_radial_legendre(self,ells=None,nthreads=8):
 	
-		if ells is not None: self.ells = self.set_n_poles(ells,nells=2)
+		if ells is not None: self.ells = self.set_n_poles(ells,n=2)
 
 		shape = (len(self._edges['main'])-1,len(self._edges['main'])-1,len(self._ells[1]),len(self._ells[2]))
 		
@@ -465,7 +463,7 @@ class PyCute(object):
 	
 	def integrate_angular_legendre(self,ells=None,nthreads=8):
 	
-		if ells is not None: self.ells = self.set_n_poles(ells,nells=2)
+		if ells is not None: self.ells = self.set_n_poles(ells,n=2)
 
 		shape = (len(self._edges['main'])-1,len(self._edges['main'])-1,len(self._ells[1]),len(self._ells[2]))
 		

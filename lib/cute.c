@@ -272,12 +272,12 @@ void print_tobin(size_t *tobin,size_t nbin)
 	printf("\n");
 }
 
-void set_catalog(size_t num,histo_t *p,histo_t *w,size_t *bin,size_t n,size_t dim_b,size_t dim_w)
+void set_catalog(size_t num,histo_t *p,histo_t *w,size_t *b,size_t n,size_t dim_b,size_t dim_w)
 {	
 	Catalog cat;
 	cat.pos = p;
 	cat.weight = w;
-	cat.bin = bin;
+	cat.bin = b;
 	cat.n_obj = n;
 	cats[num-1] = cat;
 	
@@ -566,7 +566,7 @@ void integrate_radial_legendre(histo_t *count,histo_t *integral,size_t num_threa
 				size_t ill1,ill2;
 				for (ill1=0;ill1<n_ells1;ill1++) {
 					histo_t tmp = weight*leg1[ill1]/dist_main2;
-					for(ill2=0;ill2<n_ells2;ill2++) integral[ill2+n_ells2*(ill1+n_ells1*(ibin2+bin_main.n_bin*ibin))] += tmp*leg2[ill2];
+					for (ill2=0;ill2<n_ells2;ill2++) integral[ill2+n_ells2*(ill1+n_ells1*(ibin2+bin_main.n_bin*ibin))] += tmp*leg2[ill2];
 				}
 			}
 		}
@@ -611,7 +611,7 @@ void integrate_angular_legendre(histo_t *count,histo_t *integral,size_t num_thre
 				size_t ill1,ill2;
 				for (ill1=0;ill1<n_ells1;ill1++) {
 					histo_t tmp = weight*leg1[ill1]/(fast_dist_main2*dist_aux2);
-					for(ill2=0;ill2<n_ells2;ill2++) integral[ill2+n_ells2*(ill1+n_ells1*(ibin2+bin_main.n_bin*ibin))] += tmp*(leg2[ill2]+leg2bis[ill2]);
+					for (ill2=0;ill2<n_ells2;ill2++) integral[ill2+n_ells2*(ill1+n_ells1*(ibin2+bin_main.n_bin*ibin))] += tmp*(leg2[ill2]+leg2bis[ill2]);
 				}
 			}
 		}

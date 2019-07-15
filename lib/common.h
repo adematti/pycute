@@ -51,8 +51,6 @@ void error_mem_out(void);
 
 void error_open_file(char *fname);
 
-void free_catalog(Catalog cat);
-
 //Boxes
 
 void ind2pos(size_t index[],histo_t pos[]);
