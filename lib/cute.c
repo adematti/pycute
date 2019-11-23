@@ -230,6 +230,20 @@ void clear_los()
 	}
 }
 
+void print_weight_type(WEIGHT_TYPE weight_type)
+{
+	printf("*** Weight\n");
+	if (weight_type==WEIGHT_PRODSUM) printf(" - weight-type: prod - sum\n");
+	else if (weight_type==WEIGHT_PROD) printf(" - weight-type: prod\n");
+}
+
+void set_weight_type(char* type)
+{
+	if (!strcmp(type,"prodsum")) weight_type = WEIGHT_PRODSUM;
+	else weight_type = WEIGHT_PROD;
+	if (verbose == INFO) print_weight_type(weight_type);
+}
+
 void print_corr_type()
 {
 	if (corr_type==CORR_SMU) printf(" - corr-type: s-mu\n");

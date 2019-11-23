@@ -76,9 +76,14 @@ static float fast_inv_sqrt(float x) {
 static histo_t get_weight(histo_t *weight1,histo_t *weight2)
 {
 	size_t idim;
-	histo_t weight=0;
-	for (idim=0;idim<dim_weight;idim++){
-		weight+=weight1[idim]*weight2[idim];
+	histo_t weight = 0;
+	if (weight_type==WEIGHT_PRODSUM) {
+		weight = weight1[0]*weight2[0]*(weight1[1]+weight2[1]);
+	}
+	else {
+		for (idim=0;idim<dim_weight;idim++) {
+			weight += weight1[idim]*weight2[idim];
+		}
 	}
 	return weight;
 }
@@ -90,16 +95,16 @@ static histo_t get_fast_distance_main(histo_t *pos1,histo_t *pos2)
 		histo_t dist=0.;
 		histo_t s;
 		for (idim=0;idim<dim_pos;idim++){
-			s=pos1[idim]-pos2[idim];
-			dist+=s*s;
+			s = pos1[idim]-pos2[idim];
+			dist += s*s;
 		}
 		return dist;
 	}
 	else if (corr_type==CORR_ANGULAR) {
 		size_t idim;
-		histo_t dist=0;
+		histo_t dist = 0;
 		for (idim=0;idim<dim_pos;idim++){
-			dist+=pos1[idim]*pos2[idim];
+			dist += pos1[idim]*pos2[idim];
 		}
 		return 1.-my_abs(dist);
 	}
@@ -571,7 +576,7 @@ void auto_2pcf_main_aux(Mesh mesh1,histo_t *meanmain,histo_t *meanaux,histo_t *c
 	}
 }
 
-void legendre_fast(histo_t fast_dist,histo_t leg[],MULTI_TYPE type) {
+void legendre_fast(histo_t fast_dist,histo_t *leg,MULTI_TYPE type) {
 
 	if (type==MULTI_ALL) {
 		histo_t dist_aux=get_distance_aux(fast_dist);

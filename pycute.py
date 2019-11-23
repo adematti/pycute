@@ -23,7 +23,7 @@ class PyCute(object):
 
 	def __init__(self):
 
-		self.cute = ctypes.CDLL(self.PATH_CUTE,mode=ctypes.RTLD_GLOBAL)
+		self.cute = ctypes.CDLL(self.PATH_CUTE,mode=ctypes.RTLD_LOCAL)
 		self.clear()
 
 	def set_verbosity(self,mode='info'):
@@ -77,7 +77,7 @@ class PyCute(object):
 	def set_los(self,num=1,los='midpoint',n=0):
 	
 		vec = scipy.array([0],dtype=self.C_TYPE)
-		if los not in ['midpoint','endpoint']:
+		if not isinstance(los,(str,unicode)):
 			vec = scipy.array(los,dtype=self.C_TYPE)
 			los = 'custom'
 		
@@ -109,6 +109,11 @@ class PyCute(object):
 		if len(tobin) == 1: return tobin[0]
 		return tobin
 
+	def set_weight_type(self,weighttype='prod'):
+		self.cute.set_weight_type.argtypes = (ctypes.c_char_p,)
+		self.cute.set_weight_type(weighttype)
+		return weighttype
+	
 	def set_2pcf_smu(self,sedges,muedges,position1,weight1,position2=None,weight2=None,sbinning='lin',mubinning='lin',ssize=None,musize=None,los='midpoint',losn=0,nthreads=8):
 
 		self.sedges = self.set_bin('main',edges=sedges,size=ssize,binning=sbinning)
@@ -133,9 +138,10 @@ class PyCute(object):
 		self.mu.shape = shape
 		self.counts.shape = shape
 	
-	def set_2pcf_s(self,sedges,position1,weight1,position2=None,weight2=None,sbinning='lin',ssize=None,nthreads=8):
+	def set_2pcf_s(self,sedges,position1,weight1,position2=None,weight2=None,sbinning='lin',ssize=None,weighttype='prod',nthreads=8):
 
 		self.sedges = self.set_bin('main',edges=sedges,size=ssize,binning=sbinning)
+		self.weighttype = self.set_weight_type(weighttype)
 		cross = self.set_catalogues([position1,position2],[weight1,weight2])
 		
 		self.run_2pcf_s(nthreads=nthreads)
@@ -429,6 +435,8 @@ class PyCute(object):
 		self.cute.clear_catalogs()
 		self.cute.clear_bins()
 		self.cute.clear_poles()
+		self.set_verbosity('quiet')
+		self.set_weight_type()
 		self.set_verbosity()
 	
 	def integrate_legendre(self,ells=None,nthreads=8):

@@ -42,6 +42,7 @@ typedef enum {QUIET, INFO, DEBUG} VERBOSITY;
 typedef enum {BIN_LIN, BIN_LOG, BIN_CUSTOM, BIN_BIN} BIN_TYPE;
 typedef enum {CORR_SMU, CORR_ANGULAR, CORR_SCOS} CORR_TYPE;
 typedef enum {LOS_MIDPOINT, LOS_ENDPOINT, LOS_FIRSTPOINT, LOS_CUSTOM} LOS_TYPE;
+typedef enum {WEIGHT_PROD, WEIGHT_PRODSUM} WEIGHT_TYPE;
 typedef enum {MULTI_ALL, MULTI_EVEN, MULTI_ODD} MULTI_TYPE;
 
 //Box for 2PCFs
@@ -90,6 +91,7 @@ typedef struct {
 
 VERBOSITY verbose;
 CORR_TYPE corr_type;
+WEIGHT_TYPE weight_type;
 Bin bin_main,bin_aux,bin_bin;
 size_t dim_box,dim_weight,dim_pos;
 

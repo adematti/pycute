@@ -31,19 +31,19 @@ size_t get_bin_index(histo_t x,Bin bin);
 
 histo_t get_bin_mid(size_t ibin,Bin bin);
 
-size_t ravel_index(size_t ind[],size_t dim[],size_t n);
+size_t ravel_index(size_t* ind,size_t* shape,size_t n_dim);
 
-size_t* unravel_index(size_t ind,size_t dim[],size_t n,size_t index[]);
+void unravel_index(size_t ind,size_t* shape,size_t n_dim,size_t* index);
 
 size_t get_dichotomy_index(histo_t x,histo_t *tab,size_t min,size_t max);
 
-void legendre_all(histo_t mu,histo_t mu2,histo_t leg[]);
+void legendre_all(histo_t mu,histo_t mu2,histo_t *leg);
 
-void legendre_even(histo_t mu2,histo_t leg[]);
+void legendre_even(histo_t mu2,histo_t *leg);
 
-void legendre_odd(histo_t mu,histo_t mu2,histo_t leg[]);
+void legendre_odd(histo_t mu,histo_t mu2,histo_t *leg);
 
-void legendre(histo_t dist,histo_t leg[],MULTI_TYPE type);
+void legendre(histo_t dist,histo_t *leg,MULTI_TYPE type);
 
 void timer(size_t i);
 
@@ -61,29 +61,29 @@ void free_meshs(Mesh *meshs,size_t n_meshs);
 
 //Correlators
 
-void cross_2pcf_main(Mesh mesh1,Mesh mesh2,histo_t meanmain[],histo_t count[]);
+void cross_2pcf_main(Mesh mesh1,Mesh mesh2,histo_t* meanmain,histo_t* count);
 
-void auto_2pcf_main(Mesh mesh1,histo_t meanmain[],histo_t count[]);
+void auto_2pcf_main(Mesh mesh1,histo_t* meanmain,histo_t* count);
 
-void cross_2pcf_main_aux(Mesh mesh1,Mesh mesh2,histo_t meanmain[],histo_t meanaux[],histo_t count[],LOS los);
+void cross_2pcf_main_aux(Mesh mesh1,Mesh mesh2,histo_t* meanmain,histo_t* meanaux,histo_t* count,LOS los);
 
-void auto_2pcf_main_aux(Mesh mesh1,histo_t meanmain[],histo_t meanaux[],histo_t count[],LOS los);
+void auto_2pcf_main_aux(Mesh mesh1,histo_t* meanmain,histo_t* meanaux,histo_t* count,LOS los);
 
-void cross_2pcf_multi(Mesh mesh1,Mesh mesh2,histo_t meanmain[],histo_t count[],Pole pole,LOS los);
+void cross_2pcf_multi(Mesh mesh1,Mesh mesh2,histo_t* meanmain,histo_t* count,Pole pole,LOS los);
 
-void auto_2pcf_multi(Mesh mesh1,histo_t meanmain[],histo_t count[],Pole pole,LOS los);
+void auto_2pcf_multi(Mesh mesh1,histo_t* meanmain,histo_t* count,Pole pole,LOS los);
 
-void cross_2pcf_multi_radial_legendre(Mesh mesh1,Mesh mesh2,histo_t count[],Pole *poles,LOS los);
+void cross_2pcf_multi_radial_legendre(Mesh mesh1,Mesh mesh2,histo_t* count,Pole *poles,LOS los);
 
-void cross_2pcf_multi_angular_legendre(Mesh mesh1,Mesh mesh2,histo_t count[],Pole *poles,LOS los);
+void cross_2pcf_multi_angular_legendre(Mesh mesh1,Mesh mesh2,histo_t* count,Pole *poles,LOS los);
 
-void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t count[],Pole *poles,LOS *los);
+void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t* count,Pole* poles,LOS* los);
 
-void cross_3pcf_multi_double_los(Mesh* meshs,size_t n_meshs,histo_t count[],Pole *poles,LOS *los);
+void cross_3pcf_multi_double_los(Mesh* meshs,size_t n_meshs,histo_t* count,Pole* poles,LOS* los);
 
-void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t count[],Pole pole,LOS los,size_t tobin);
+void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t* count,Pole pole,LOS los,size_t tobin);
 
-void cross_4pcf_multi_binned(Mesh *meshs,histo_t count[],Pole *poles,LOS *los,size_t *tobin);
+void cross_4pcf_multi_binned(Mesh* meshs,histo_t* count,Pole* poles,LOS* los,size_t* tobin);
 
 //Debug files output
 void write_mesh(Mesh mesh,char *fn);

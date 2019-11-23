@@ -299,6 +299,16 @@ def test_los():
 	pycute.set_2pcf_multi(sedges,position1,weight1*distance(position1)**2,position2=position2,weight2=weight2,ells=ells,nthreads=nthreads,los='endpoint',losn=2)
 	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 
+def test_weight():
+	position1,weight1,position2,weight2 = load_catalogues()
+	pycute = PyCute()
+	pycute.set_2pcf_s(sedges,position1,weight1,position2=position2,weight2=weight2,nthreads=nthreads)
+	countsref = pycute.counts
+	weight1 = scipy.array([weight1,scipy.ones_like(weight1)]).T
+	weight2 = scipy.array([weight2,scipy.ones_like(weight2)]).T
+	pycute.set_2pcf_s(sedges,position1,weight1,position2=position2,weight2=weight2,nthreads=nthreads,weighttype='prodsum')
+	testing.assert_allclose(countsref,pycute.counts/2.,rtol=1e-7,atol=1e-7)
+
 def save_reference_2pcf_multi_radial_legendre():
 	position1,weight1,position2,weight2 = load_catalogues()
 	pycute = PyCute()
@@ -458,6 +468,7 @@ test_2pcf_angular()
 test_2pcf_smu()
 test_2pcf_scos()
 test_los()
+test_weight()
 test_2pcf_multi()
 test_3pcf_multi()
 test_3pcf_multi_double_los()

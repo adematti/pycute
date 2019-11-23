@@ -25,8 +25,8 @@
 /*********************************************************************/
 
 #include <stdio.h>
-#include <math.h>
 #include <stdlib.h>
+#include <math.h>
 #include "define.h"
 #include "common.h"
 
@@ -78,28 +78,28 @@ histo_t get_bin_edge(size_t ibin,Bin bin)
 	exit(1);
 }
 
-size_t ravel_index(size_t ind[],size_t dim[],size_t n)
+size_t ravel_index(size_t* ind,size_t* shape,size_t n_dim)
 {
 	size_t index=ind[0];
 	size_t prod=1;
 	size_t ii;
-	for (ii=1;ii<n;ii++) {
-		prod*=dim[ii-1];
-		index+=prod*ind[ii];
+	for (ii=1;ii<n_dim;ii++) {
+		prod *= shape[ii-1];
+		index += prod*ind[ii];
 	}
 	return index;
 }
 
-size_t* unravel_index(size_t ind,size_t dim[],size_t n,size_t index[])
+void unravel_index(size_t ind,size_t* shape,size_t n_dim,size_t* index)
 {
-	index[0]=ind%dim[0];
+	index[0] = ind%shape[0];
 	size_t ii;
-	for (ii=1;ii<n;ii++) {
-		ind=(ind-index[ii-1])/dim[ii-1];
-		index[ii]=ind%dim[ii];
+	for (ii=1;ii<n_dim;ii++) {
+		ind = (ind-index[ii-1])/shape[ii-1];
+		index[ii] = ind%shape[ii];
 	}
-	return index;
 }
+
 
 size_t get_dichotomy_index(histo_t x,histo_t *tab,size_t min,size_t max)
 {
@@ -112,7 +112,7 @@ size_t get_dichotomy_index(histo_t x,histo_t *tab,size_t min,size_t max)
 	}
 }
 
-void legendre_all(histo_t mu,histo_t mu2,histo_t leg[])
+void legendre_all(histo_t mu,histo_t mu2,histo_t* leg)
 {
 	histo_t mu3 = mu2*mu;
 	histo_t mu4 = mu2*mu2;
@@ -135,7 +135,7 @@ void legendre_all(histo_t mu,histo_t mu2,histo_t leg[])
 	//leg[6] = 1./1024.*(676039.*mu12-1939938.*mu10+2078505.*mu8-1021020.*mu6+225225.*mu4-18018.*mu2+231.);
 }
 
-void legendre_even(histo_t mu2,histo_t leg[])
+void legendre_even(histo_t mu2,histo_t* leg)
 {
 	histo_t mu4 = mu2*mu2;
 	histo_t mu6 = mu4*mu2;
@@ -151,7 +151,7 @@ void legendre_even(histo_t mu2,histo_t leg[])
 	leg[6] = 1./1024.*(676039.*mu12-1939938.*mu10+2078505.*mu8-1021020.*mu6+225225.*mu4-18018.*mu2+231.);
 }
 
-void legendre_odd(histo_t mu,histo_t mu2,histo_t leg[])
+void legendre_odd(histo_t mu,histo_t mu2,histo_t* leg)
 {
 	histo_t mu3 = mu2*mu;
 	histo_t mu5 = mu3*mu2;
@@ -166,7 +166,7 @@ void legendre_odd(histo_t mu,histo_t mu2,histo_t leg[])
 	leg[5] = 1./256.*(88179.*mu11-230945.*mu9+218790*mu7-90090.*mu5+15015.*mu3-693.*mu);
 }
 
-void legendre(histo_t dist,histo_t leg[],MULTI_TYPE type) {
+void legendre(histo_t dist,histo_t* leg,MULTI_TYPE type) {
 
 	if (type==MULTI_ALL) {
 		legendre_all(dist,dist*dist,leg);
