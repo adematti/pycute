@@ -9,10 +9,11 @@ def wrap_phi(phi):
 	phi[mask] = 2*constants.pi+phi[mask]
 	return phi
 
-def celestial_to_spherical(pos):
+def celestial_to_spherical(pos,degree=True):
+	toradians = constants.degree if degree else 1.
 	ra,dec = pos.T
-	theta = (90.-dec)*constants.degree
-	phi = ra*constants.degree
+	theta = (90.-dec)*toradians
+	phi = ra*toradians
 	phi = wrap_phi(phi)
 	return scipy.asarray([theta,phi]).T
 
@@ -159,22 +160,25 @@ class PyCute(object):
 		self.s.shape = shape
 		self.counts.shape = shape
 
-	def set_2pcf_angular(self,thetaedges,position1,weight1,position2=None,weight2=None,thetabinning='lin',thetasize=None,celestial=True,nthreads=8):
+	def set_2pcf_angular(self,thetaedges,position1,weight1,position2=None,weight2=None,thetabinning='lin',thetasize=None,celestial=True,degree=True,nthreads=8):
 
 		#theta edges in radians
-		toradians = constants.degree if celestial else 1.
+		toradians = constants.degree if degree else 1.
 
 		if celestial:
-			position1 = celestial_to_spherical(position1)
-			if position2 is not None: position2 = celestial_to_spherical(position2)
+			position1 = celestial_to_spherical(position1,degree=degree)
+			if position2 is not None: position2 = celestial_to_spherical(position2,degree=degree)
 		else:
+			position1 = position1.copy()*toradians
 			position1[:,1] = wrap_phi(position1[:,1])
-			if position2 is not None: position2[:,1] = wrap_phi(position2[:,1])
+			if position2 is not None:
+				position2 = position2.copy()*toradians
+				position2[:,1] = wrap_phi(position2[:,1])
 		
 		self.thetaedges = self.set_bin('main',edges=scipy.asarray(thetaedges)*toradians,size=thetasize,binning=thetabinning)/toradians
 		cross = self.set_catalogues([position1,position2],[weight1,weight2])
 	
-		self.run_2pcf_angular(degree=True,nthreads=nthreads)
+		self.run_2pcf_angular(degree=degree,nthreads=nthreads)
 
 	def run_2pcf_angular(self,degree=True,nthreads=8):
 		

@@ -304,10 +304,24 @@ def test_weight():
 	pycute = PyCute()
 	pycute.set_2pcf_s(sedges,position1,weight1,position2=position2,weight2=weight2,nthreads=nthreads)
 	countsref = pycute.counts
-	weight1 = scipy.array([weight1,scipy.ones_like(weight1)]).T
-	weight2 = scipy.array([weight2,scipy.ones_like(weight2)]).T
-	pycute.set_2pcf_s(sedges,position1,weight1,position2=position2,weight2=weight2,nthreads=nthreads,weighttype='prodsum')
+	weight1_ = scipy.array([weight1,3.*scipy.ones_like(weight1)]).T
+	weight2_ = scipy.array([weight2,scipy.ones_like(weight2)]).T
+	pycute.set_2pcf_s(sedges,position1,weight1_,position2=position2,weight2=weight2_,nthreads=nthreads,weighttype='prodsum')
+	testing.assert_allclose(countsref,pycute.counts/4.,rtol=1e-7,atol=1e-7)
+	weight1_ = scipy.array([weight1,scipy.zeros_like(weight1)]).T
+	weight2_ = scipy.array([scipy.ones_like(weight2),weight2]).T
+	pycute.set_2pcf_s(sedges,position1,weight1_,position2=position2,weight2=weight2_,nthreads=nthreads,weighttype='prodsum')
+	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
+	
+	pycute.set_2pcf_s(sedges,position1,weight1,position2=position1,weight2=weight1,nthreads=nthreads)
+	countsref = pycute.counts
+	pycute.set_2pcf_s(sedges,position1,weight1,nthreads=nthreads,weighttype='prod')
+	testing.assert_allclose(countsref,pycute.counts*2.,rtol=1e-7,atol=1e-7)
+	countsref = pycute.counts
+	weight1_ = scipy.array([weight1,scipy.ones_like(weight1)]).T
+	pycute.set_2pcf_s(sedges,position1,weight1_,nthreads=nthreads,weighttype='prodsum')
 	testing.assert_allclose(countsref,pycute.counts/2.,rtol=1e-7,atol=1e-7)
+	
 
 def save_reference_2pcf_multi_radial_legendre():
 	position1,weight1,position2,weight2 = load_catalogues()
