@@ -2,10 +2,7 @@ import os
 import scipy
 from scipy import constants
 from numpy import testing
-from Corrfunc.theory.DDsmu import DDsmu
-from Corrfunc.theory.DD import DD
-from Corrfunc.mocks.DDtheta_mocks import DDtheta_mocks
-from kdcount import correlate
+from kdcount import sphere,correlate
 from pycute import *
 from pycute.pycute import wrap_phi
 
@@ -58,7 +55,16 @@ def cartesian_to_angular(pos):
 	phi = wrap_phi(scipy.arctan2(pos[1],pos[0]))/constants.degree
 	return scipy.asarray([phi,theta]).T
 
+def angular_to_cartesian(pos):
+	x = scipy.sin(pos[:,0]*constants.degree)
+	cos_theta = scipy.cos(pos[:,0]*constants.degree)
+	y = cos_theta*scipy.cos(pos[:,1]*constants.degree)
+	z = cos_theta*scipy.cos(pos[:,2]*constants.degree)
+	return scipy.asarray([x,y,z]).T
+
+'''
 def reference_2pcf_s(sedges,position1,weight1,position2=None,weight2=None):
+	from Corrfunc.theory.DD import DD
 	"""Reference pair counting via corrfunc"""
 	if position2 is None:
 		X2 = Y2 = Z2 = None
@@ -72,11 +78,36 @@ def reference_2pcf_s(sedges,position1,weight1,position2=None,weight2=None):
 	return factor*ref['npairs']*ref['weightavg']
 	
 def reference_2pcf_angular(thetaedges,position1,weight1,position2=None,weight2=None):
+	from Corrfunc.mocks.DDtheta_mocks import DDtheta_mocks
 	"""Reference pair counting via corrfunc"""
 	RA2=None if position2 is None else position2[:,0]
 	DEC2=None if position2 is None else position2[:,1]
 	ref = DDtheta_mocks(position2 is None,nthreads,scipy.asarray(thetaedges),position1[:,0],position1[:,1],weights1=weight1,RA2=RA2,DEC2=DEC2,weights2=weight2,output_thetaavg=False,weight_type='pair_product',verbose=verbose)
 	return ref['npairs']*ref['weightavg']
+'''
+def reference_2pcf_s(sedges,position1,weight1,position2=None,weight2=None):
+	"""Reference pair counting via kdcount"""
+	tree1 = correlate.points(position1,boxsize=None,weights=weight1)
+	factor = 1.
+	if position2 is None:
+		tree2 = tree1
+		factor = 1./2.
+	else: tree2 = correlate.points(position2,boxsize=None,weights=weight2)
+	bins = correlate.RBinning(scipy.asarray(sedges))
+	pc = correlate.paircount(tree1,tree2,bins,np=0,usefast=False,compute_mean_coords=True)
+	return factor*pc.sum1
+
+def reference_2pcf_angular(thetaedges,position1,weight1,position2=None,weight2=None):
+	"""Reference pair counting via kdcount"""
+	tree1 = sphere.points(position1[:,0],position1[:,1],weights=weight1)
+	factor = 1.
+	if position2 is None:
+		tree2 = tree1
+		factor = 1./2.
+	else: tree2 = sphere.points(position2[:,0],position2[:,1],weights=weight2)
+	bins = sphere.AngularBinning(scipy.asarray(thetaedges))
+	pc = correlate.paircount(tree1,tree2,bins)
+	return factor*pc.sum1
 	
 def reference_2pcf_smu(sedges,muedges,position1,weight1,position2=None,weight2=None,los='midpoint'):
 	"""Reference pair counting via kdcount"""
@@ -131,17 +162,17 @@ def test_2pcf_angular():
 	
 	pycute.set_2pcf_angular(thetaedges,position1,weight1,nthreads=nthreads,celestial=True)
 	countsref = reference_2pcf_angular(thetaedges,position1,weight1)
-	testing.assert_allclose(countsref,2.*pycute.counts,rtol=1e-7,atol=1e-7)
+	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 	
 	thetaedges_ = [1.,3.,5.,6.]
 	pycute.set_2pcf_angular(thetaedges_,position1,weight1,nthreads=nthreads,celestial=True,thetabinning='custom')
 	countsref = reference_2pcf_angular(thetaedges_,position1,weight1)
-	testing.assert_allclose(countsref,2.*pycute.counts,rtol=1e-7,atol=1e-7)
+	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 	
 	thetaedges_ = scipy.logspace(-2,1,10,base=10)
 	pycute.set_2pcf_angular(thetaedges_,position1,weight1,nthreads=nthreads,celestial=True,thetabinning='log')
 	countsref = reference_2pcf_angular(thetaedges_,position1,weight1)
-	testing.assert_allclose(countsref,2.*pycute.counts,rtol=1e-7,atol=1e-7)
+	testing.assert_allclose(countsref,pycute.counts,rtol=1e-7,atol=1e-7)
 
 def test_2pcf_smu():
 	position1,weight1,position2,weight2 = load_catalogues()
@@ -175,6 +206,7 @@ def test_2pcf_smu():
 	counts = pycute.counts + pycute.counts[:,::-1]
 	testing.assert_allclose(countsref,counts,rtol=1e-7,atol=1e-7)
 	"""
+	#from Corrfunc.theory.DDsmu import DDsmu
 	#ref = DDsmu(0,nthreads,pycute.sedges,muedges[-1],nmu,X1=position1[0],Y1=position1[1],Z1=position1[2],weights1=weight1,X2=position2[0],Y2=position2[1],Z2=position2[2],weights2=weight2,weight_type='pair_product',periodic=False,verbose=True,output_savg=True)
 	#countsref = (ref['npairs']*ref['weightavg']).reshape((len(sedges)-1,nmu//2))
 	
@@ -495,4 +527,3 @@ test_integrate_legendre()
 test_integrate_radial_legendre()
 test_integrate_angular_legendre()
 test_verbosity()
-

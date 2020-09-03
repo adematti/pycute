@@ -29,7 +29,7 @@ class PyCute(object):
 
 	def set_verbosity(self,mode='info'):
 		self.cute.set_verbosity.argtypes = (ctypes.c_char_p,)
-		self.cute.set_verbosity(mode)
+		self.cute.set_verbosity(mode.encode('utf-8'))
 		self._verbose = mode
 
 	def set_bin(self,mode,edges=None,size=None,binning='lin'):
@@ -51,7 +51,7 @@ class PyCute(object):
 			raise ValueError('Wrong binning type/mode.')
 	
 		self.cute.set_bin.argtypes = (ctypes.c_char_p,ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(size+1,)),ctypes.c_size_t,ctypes.c_char_p)
-		self.cute.set_bin(mode,edges,size,binning)
+		self.cute.set_bin(mode.encode('utf-8'),edges,size,binning.encode('utf-8'))
 		self._edges[mode] = edges
 	
 		return self._edges[mode].copy()
@@ -70,7 +70,7 @@ class PyCute(object):
 			multitype = 'all'
 		
 		self.cute.set_pole.argtypes = (ctypes.c_size_t,ctypes.c_char_p,ctypes.c_size_t)
-		self.cute.set_pole(num,multitype,nells)
+		self.cute.set_pole(num,multitype.encode('utf-8'),nells)
 		self._ells[num] = ells.tolist()
 
 		return list(self._ells[num])
@@ -78,12 +78,12 @@ class PyCute(object):
 	def set_los(self,num=1,los='midpoint',n=0):
 	
 		vec = scipy.array([0],dtype=self.C_TYPE)
-		if not isinstance(los,(str,unicode)):
+		if not isinstance(los,str):
 			vec = scipy.array(los,dtype=self.C_TYPE)
 			los = 'custom'
 		
 		self.cute.set_los.argtypes = (ctypes.c_size_t,ctypes.c_char_p,ctypeslib.ndpointer(dtype=self.C_TYPE),ctypes.c_size_t)
-		self.cute.set_los(num,los,vec,n)
+		self.cute.set_los(num,los.encode('utf-8'),vec,n)
 
 		self._los[num] = (los if los != 'custom' else vec,n)
 
@@ -95,7 +95,7 @@ class PyCute(object):
 		return ells
 	
 	def set_n_los(self,los,losn=0,n=1):
-		if isinstance(los,(str,unicode)) or (scipy.isscalar(los[0]) and not isinstance(los[0],str)): los = [los]*n
+		if isinstance(los,str) or (scipy.isscalar(los[0]) and not isinstance(los[0],str)): los = [los]*n
 		if scipy.isscalar(losn): losn = [losn]*n
 		los = [self.set_los(ilos+1,los=los[ilos],n=losn[ilos]) for ilos in range(n)]
 		return los
@@ -112,7 +112,7 @@ class PyCute(object):
 
 	def set_weight_type(self,weighttype='prod'):
 		self.cute.set_weight_type.argtypes = (ctypes.c_char_p,)
-		self.cute.set_weight_type(weighttype)
+		self.cute.set_weight_type(weighttype.encode('utf-8'))
 		return weighttype
 	
 	def set_2pcf_smu(self,sedges,muedges,position1,weight1,position2=None,weight2=None,sbinning='lin',mubinning='lin',ssize=None,musize=None,los='midpoint',losn=0,nthreads=8):
@@ -134,7 +134,7 @@ class PyCute(object):
 		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.counts)))
 	
 		self.cute.run_2pcf_main_aux.argtypes = (typecounts,typecounts,typecounts,ctypes.c_char_p,ctypes.c_size_t)
-		self.cute.run_2pcf_main_aux(self.s,self.mu,self.counts,'s-mu',nthreads)
+		self.cute.run_2pcf_main_aux(self.s,self.mu,self.counts,'s-mu'.encode('utf-8'),nthreads)
 		self.s.shape = shape
 		self.mu.shape = shape
 		self.counts.shape = shape
@@ -156,7 +156,7 @@ class PyCute(object):
 		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.counts)))
 	
 		self.cute.run_2pcf_main.argtypes = (typecounts,typecounts,ctypes.c_char_p,ctypes.c_size_t)
-		self.cute.run_2pcf_main(self.s,self.counts,'s-mu',nthreads)
+		self.cute.run_2pcf_main(self.s,self.counts,'s-mu'.encode('utf-8'),nthreads)
 		self.s.shape = shape
 		self.counts.shape = shape
 
@@ -189,7 +189,7 @@ class PyCute(object):
 		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.counts)))
 	
 		self.cute.run_2pcf_main.argtypes = (typecounts,typecounts,ctypes.c_char_p,ctypes.c_size_t)
-		self.cute.run_2pcf_main(self.theta,self.counts,'angular',nthreads)
+		self.cute.run_2pcf_main(self.theta,self.counts,'angular'.encode('utf-8'),nthreads)
 		self.theta.shape = shape
 		if degree: self.theta /= constants.degree
 		self.counts.shape = shape
@@ -235,7 +235,7 @@ class PyCute(object):
 		typecounts = ctypeslib.ndpointer(dtype=self.C_TYPE,shape=(len(self.counts)))
 	
 		self.cute.run_2pcf_main_aux.argtypes = (typecounts,typecounts,typecounts,ctypes.c_char_p,ctypes.c_size_t)
-		self.cute.run_2pcf_main_aux(self.s,self.mu,self.counts,'s-cos',nthreads)
+		self.cute.run_2pcf_main_aux(self.s,self.mu,self.counts,'s-cos'.encode('utf-8'),nthreads)
 		self.s.shape = shape
 		self.mu.shape = shape
 		self.counts.shape = shape
