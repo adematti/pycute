@@ -414,7 +414,7 @@ void cross_2pcf_main_aux(Mesh mesh1,Mesh mesh2,histo_t *meanmain,histo_t *meanau
 		htreadaux = (histo_t *) calloc(n_bin_tot,sizeof(histo_t));
 		threadcount = (histo_t *) calloc(n_bin_tot,sizeof(histo_t));
 
-		histo_t dist_los;
+		histo_t dist_los=0.;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 
 #pragma omp for schedule(static)
@@ -496,7 +496,7 @@ void auto_2pcf_main_aux(Mesh mesh1,histo_t *meanmain,histo_t *meanaux,histo_t *c
 		htreadaux = (histo_t *) calloc(n_bin_tot,sizeof(histo_t));
 		threadcount = (histo_t *) calloc(n_bin_tot,sizeof(histo_t));
 
-		histo_t dist_los;
+		histo_t dist_los=0.;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 
 #pragma omp for schedule(static)
@@ -621,7 +621,7 @@ void cross_2pcf_multi(Mesh mesh1,Mesh mesh2,histo_t *meanmain,histo_t *count,Pol
 		threadmeanmain = (histo_t *) calloc(n_bin_tot,sizeof(histo_t));
 		threadcount = (histo_t *) calloc(n_bin_tot,sizeof(histo_t));
 
-		histo_t dist_los;
+		histo_t dist_los=0.;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 
 #pragma omp for schedule(static)
@@ -703,7 +703,7 @@ void auto_2pcf_multi(Mesh mesh1,histo_t *meanmain,histo_t *count,Pole pole,LOS l
 		threadmeanmain = (histo_t *) calloc(n_bin_tot,sizeof(histo_t));
 		threadcount = (histo_t *) calloc(n_bin_tot,sizeof(histo_t));
 
-		histo_t dist_los;
+		histo_t dist_los=0.;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 
 #pragma omp for schedule(static)
@@ -806,7 +806,7 @@ void cross_2pcf_multi_radial_legendre(Mesh mesh1,Mesh mesh2,histo_t *count,Pole 
 		size_t n_ells2 = poles[1].n_ells;
 		threadcount = (histo_t *) calloc(n_bin_tot,sizeof(histo_t));
 		histo_t leg1[MAX_ELLS],leg2[MAX_ELLS];
-		histo_t dist_los;
+		histo_t dist_los=0.;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 
 #pragma omp for schedule(static)
@@ -896,7 +896,7 @@ void cross_2pcf_multi_angular_legendre(Mesh mesh1,Mesh mesh2,histo_t *count,Pole
 		size_t n_ells2 = poles[1].n_ells;
 		threadcount = (histo_t *) calloc(n_bin_tot,sizeof(histo_t));
 		histo_t leg1[MAX_ELLS],leg2[MAX_ELLS];
-		histo_t dist_los;
+		histo_t dist_los=0.;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 
 #pragma omp for schedule(static)
@@ -1360,7 +1360,7 @@ void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t *count,Pole pole,LO
 		MULTI_TYPE multi_type = pole.type;
 		size_t n_ells = pole.n_ells;
 		threadcount = (histo_t*) calloc(n_bin_tot,sizeof(histo_t))
-		histo_t dist_los;
+		histo_t dist_los=0.;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 		
 #pragma omp for schedule(static)
@@ -1430,7 +1430,7 @@ void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t *count,Pole pole,LO
 		MULTI_TYPE multi_type = pole.type;
 		size_t n_ells = pole.n_ells;
 		threadcount = (histo_t*) calloc(n_bin_tot,sizeof(histo_t));
-		histo_t dist_los;
+		histo_t dist_los=0.;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 		
 #pragma omp for schedule(static)

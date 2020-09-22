@@ -89,6 +89,9 @@ void set_bin(char* mode,histo_t* edges,size_t n_bin,char* type)
 	bin.log10min=0.;
 	bin.log10max=0.;
 	bin.edges=NULL;
+	bin.min=0.;
+	bin.max=0.;
+	bin.step=1.;
 
 	if (!strcmp(type,"log")) {
 		bin.min=edges[0];
@@ -204,6 +207,7 @@ void print_los(LOS l)
 void set_los(size_t num,char* type,histo_t* vec,size_t n)
 {
 	LOS l;
+	l.los=NULL;
 	if (!strcmp(type,"midpoint")) l.type=LOS_MIDPOINT;
 	else if (!strcmp(type,"endpoint")) l.type=LOS_ENDPOINT;
 	else if (!strcmp(type,"firstpoint")) l.type=LOS_FIRSTPOINT;
@@ -289,6 +293,7 @@ void print_tobin(size_t *tobin,size_t nbin)
 void set_catalog(size_t num,histo_t *p,histo_t *w,size_t *b,size_t n,size_t dim_b,size_t dim_w)
 {	
 	Catalog cat;
+	cat.box=NULL;
 	cat.pos = p;
 	cat.weight = w;
 	cat.bin = b;
