@@ -526,4 +526,5 @@ test_2pcf_multi_angular_legendre()
 test_integrate_legendre()
 test_integrate_radial_legendre()
 test_integrate_angular_legendre()
+
 test_verbosity()

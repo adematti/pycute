@@ -255,7 +255,7 @@ void cross_2pcf_main(Mesh mesh1,Mesh mesh2,histo_t *meanmain,histo_t *count)
 		htreadmain = (histo_t *) calloc(n_bin_tot,sizeof(histo_t));
 		threadcount = (histo_t *) calloc(n_bin_tot,sizeof(histo_t));
 
-#pragma omp for nowait schedule(dynamic)
+#pragma omp for schedule(static)
 		for (ibox1=0;ibox1<n_boxes1;ibox1++) {
 			Box box1=boxes1[ibox1];
 			size_t ibox2;
@@ -323,7 +323,7 @@ void auto_2pcf_main(Mesh mesh1,histo_t *meanmain,histo_t *count)
 		htreadmain = (histo_t *) calloc(n_bin_tot,sizeof(histo_t));
 		threadcount = (histo_t *) calloc(n_bin_tot,sizeof(histo_t));
 
-#pragma omp for nowait schedule(dynamic)
+#pragma omp for schedule(static)
 		for (ibox1=0;ibox1<n_boxes1;ibox1++) {
 			Box box1=boxes1[ibox1];
 			size_t n_obj1=box1.n_obj;
@@ -417,7 +417,7 @@ void cross_2pcf_main_aux(Mesh mesh1,Mesh mesh2,histo_t *meanmain,histo_t *meanau
 		histo_t dist_los;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 
-#pragma omp for nowait schedule(dynamic)
+#pragma omp for schedule(static)
 		for (ibox1=0;ibox1<n_boxes1;ibox1++) {
 			Box box1=boxes1[ibox1];
 			size_t ibox2;
@@ -499,7 +499,7 @@ void auto_2pcf_main_aux(Mesh mesh1,histo_t *meanmain,histo_t *meanaux,histo_t *c
 		histo_t dist_los;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 
-#pragma omp for nowait schedule(dynamic)
+#pragma omp for schedule(static)
 		for (ibox1=0;ibox1<n_boxes1;ibox1++) {
 			Box box1=boxes1[ibox1];
 			size_t n_obj1=box1.n_obj;
@@ -624,7 +624,7 @@ void cross_2pcf_multi(Mesh mesh1,Mesh mesh2,histo_t *meanmain,histo_t *count,Pol
 		histo_t dist_los;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 
-#pragma omp for nowait schedule(dynamic)
+#pragma omp for schedule(static)
 		for (ibox1=0;ibox1<n_boxes1;ibox1++) {
 			Box box1=boxes1[ibox1];
 			size_t ibox2;
@@ -706,7 +706,7 @@ void auto_2pcf_multi(Mesh mesh1,histo_t *meanmain,histo_t *count,Pole pole,LOS l
 		histo_t dist_los;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 
-#pragma omp for nowait schedule(dynamic)
+#pragma omp for schedule(static)
 		for (ibox1=0;ibox1<n_boxes1;ibox1++) {
 			Box box1=boxes1[ibox1];
 			size_t n_obj1=box1.n_obj;
@@ -809,7 +809,7 @@ void cross_2pcf_multi_radial_legendre(Mesh mesh1,Mesh mesh2,histo_t *count,Pole 
 		histo_t dist_los;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 
-#pragma omp for nowait schedule(dynamic)
+#pragma omp for schedule(static)
 		for (ibox1=0;ibox1<n_boxes1;ibox1++) {
 			Box box1=boxes1[ibox1];
 			size_t ibox2;
@@ -899,7 +899,7 @@ void cross_2pcf_multi_angular_legendre(Mesh mesh1,Mesh mesh2,histo_t *count,Pole
 		histo_t dist_los;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 
-#pragma omp for nowait schedule(dynamic)
+#pragma omp for schedule(static)
 		for (ibox1=0;ibox1<n_boxes1;ibox1++) {
 			Box box1=boxes1[ibox1];
 			size_t ibox2;
@@ -1003,7 +1003,7 @@ void cross_2pcf_multi_radial_legendre(Mesh mesh1,Mesh mesh2,histo_t *count,Pole 
 		for (ibin=0;ibin<n_bin_tot;ibin++) threadcount[ibin]=0;
 		histo_t leg1[MAX_ELLS],leg2[MAX_ELLS];
 
-#pragma omp for nowait schedule(dynamic)
+#pragma omp for schedule(static)
 		for (ibox1=0;ibox1<n_boxes1;ibox1++) {
 			Box box1=boxes1[ibox1];
 			size_t ibox2;
@@ -1086,7 +1086,7 @@ void cross_3pcf_multi(Mesh* meshs,size_t n_meshs,histo_t *count,Pole *poles,LOS 
 		for (isec=0;isec<n_sec;isec++) {
 			if (los[isec].type==LOS_CUSTOM) dist_los[isec]=get_distance_losn(get_fast_distance_losn(los[isec].los),los[isec].n);
 		}
-#pragma omp for nowait schedule(dynamic)
+#pragma omp for schedule(static)
 		for (ibox1=0;ibox1<n_boxes1;ibox1++) {
 			Box box1=boxes1[ibox1];
 			size_t n_obj1=box1.n_obj;
@@ -1227,7 +1227,7 @@ void cross_3pcf_multi_double_los(Mesh* meshs,size_t n_meshs,histo_t *count,Pole 
 		for (isec=0;isec<n_sec;isec++) {
 			if (los[isec].type==LOS_CUSTOM) dist_los[isec]=get_distance_losn(get_fast_distance_losn(los[isec].los),los[isec].n);
 		}
-#pragma omp for nowait schedule(dynamic)
+#pragma omp for schedule(static)
 		for (ibox1=0;ibox1<n_boxes1;ibox1++) {
 			Box box1=boxes1[ibox1];
 			size_t n_obj1=box1.n_obj;
@@ -1363,7 +1363,7 @@ void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t *count,Pole pole,LO
 		histo_t dist_los;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 		
-#pragma omp for nowait schedule(dynamic)
+#pragma omp for schedule(static)
 		for (ibox2=0;ibox2<n_boxes2;ibox2++) {
 			Box box2=boxes2[ibox2];
 			size_t n_obj2=box2.n_obj;
@@ -1433,7 +1433,7 @@ void cross_2pcf_multi_binned(Mesh mesh1, Mesh mesh2, histo_t *count,Pole pole,LO
 		histo_t dist_los;
 		if (los.type==LOS_CUSTOM) dist_los=get_distance_losn(get_fast_distance_losn(los.los),los.n);
 		
-#pragma omp for nowait schedule(dynamic)
+#pragma omp for schedule(static)
 		for (ibox1=0;ibox1<n_boxes1;ibox1++) {
 			Box box1=boxes1[ibox1];
 			size_t ibox2;	
@@ -1505,7 +1505,7 @@ void cross_4pcf_multi_binned(Mesh *meshs,histo_t *count,Pole *poles,LOS *los,siz
 		size_t ibin;
 		threadcount = (histo_t*) calloc(n_bin_tot,sizeof(histo_t));
 
-#pragma omp for nowait schedule(dynamic)
+#pragma omp for schedule(static)
 		for (ibin=0;ibin<n_bin_bin;ibin++) {
 			size_t ibin1;
 			for (ibin1=0;ibin1<n_bin_main;ibin1++) {
