@@ -1,25 +1,3 @@
-///////////////////////////////////////////////////////////////////////
-//                                                                   //
-//   Copyright 2012 David Alonso                                     //
-//                                                                   //
-//                                                                   //
-// This file is part of CUTE.                                        //
-//                                                                   //
-// CUTE is free software: you can redistribute it and/or modify it   //
-// under the terms of the GNU General Public License as published by //
-// the Free Software Foundation, either version 3 of the License, or //
-// (at your option) any later version.                               //
-//                                                                   //
-// CUTE is distributed in the hope that it will be useful, but       //
-// WITHOUT ANY WARRANTY; without even the implied warranty of        //
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU  //
-// General Public License for more details.                          //
-//                                                                   //
-// You should have received a copy of the GNU General Public License //
-// along with CUTE.  If not, see <http://www.gnu.org/licenses/>.     //
-//                                                                   //
-///////////////////////////////////////////////////////////////////////
-
 #ifndef _CUTE_DEFINE_
 #define _CUTE_DEFINE_
 
@@ -47,46 +25,46 @@ typedef enum {MULTI_ALL, MULTI_EVEN, MULTI_ODD} MULTI_TYPE;
 
 //Box for 2PCFs
 typedef struct {
-	size_t n_obj;
-	histo_t *pos;
-	histo_t *weight;
-	size_t *bin;
-	size_t *index;
-	size_t *visit_min;
-	size_t *visit_max;
+  size_t n_obj;
+  histo_t *pos;
+  histo_t *weight;
+  size_t *bin;
+  size_t *index;
+  size_t *visit_min;
+  size_t *visit_max;
 } Box; //cell
 
 typedef struct {
-	size_t n_boxes;
-	Box* boxes;
+  size_t n_boxes;
+  Box* boxes;
 } Mesh;
 
 //Catalog
 typedef struct {
-	size_t n_obj;
-	histo_t *pos;
-	histo_t *weight;
-	size_t *bin;
-	histo_t *box;
+  size_t n_obj;
+  histo_t *pos;
+  histo_t *weight;
+  size_t *bin;
+  histo_t *box;
 } Catalog; //Catalog
 
 //Bin
 typedef struct {
-	size_t n_bin;
-	histo_t min,max,step,log10min,log10max;
-	histo_t* edges;
-	BIN_TYPE type;  
+  size_t n_bin;
+  histo_t min,max,step,log10min,log10max;
+  histo_t* edges;
+  BIN_TYPE type;
 } Bin;
 
 typedef struct {
-	size_t n_ells;
-	MULTI_TYPE type;  
+  size_t n_ells;
+  MULTI_TYPE type;
 } Pole;
 
 typedef struct {
-	histo_t *los;
-	LOS_TYPE type;
-	size_t n;
+  histo_t *los;
+  LOS_TYPE type;
+  size_t n;
 } LOS;
 
 VERBOSITY verbose;
