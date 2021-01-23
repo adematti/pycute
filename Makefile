@@ -1,7 +1,7 @@
 ####################################################
 ###          User definable stuff
 
-EXEC = cute
+EXEC = pycute/cute.so
 
 DEFINEOPTIONS =
 #DEFINEOPTIONS += -D_FLOAT32
@@ -46,7 +46,7 @@ default: $(EXEC)
 all: $(EXEC)
 
 $(EXEC): $(OBJ)
-	$(COMPCPU) $(OPTCPU) -fPIC -shared $^ -o $@.so
+	$(COMPCPU) $(OPTCPU) -fPIC -shared $^ -o $@
 
 %.o: %.c
 	$(COMPCPU) $(OPTCPU) -fPIC -o $@ -c $< $(INCLUDECOM) $(LIBCPU)
@@ -54,4 +54,4 @@ $(EXEC): $(OBJ)
 #CLEANING RULES
 clean :
 	rm -f $(CUTE_LIB)/*.o
-	rm -f ./*.so
+	rm -f $(EXEC)

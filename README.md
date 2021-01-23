@@ -9,13 +9,13 @@ This package is inspired by CUTE https://github.com/damonge/CUTE (https://arxiv.
 The C code has been mostly refurbished into a more flexible (though probably slower) form. It uses OpenMP for parallelization if available.
 A basic Python wrapper (based on ctypes) is provided in pycute.py.
 Different line-of-sight definitions are implemented (firstpoint, endpoint, midpoint, custom).
-All tests are in tests/.
+All tests are in py/tests/.
 
 ## Installation
 
-To compile the C code:\
-$ make clean\
-$ make
+```
+python setup.py install
+```
 
 ## Requirements
 

@@ -15,8 +15,7 @@ install:
     - source activate test
     - conda install --yes nose cython scipy pytest coverage
     - conda install --yes -c bccp kdcount
-    - make
-    - export PYTHONPATH=${PWD%/*}:$PYTHONPATH
+    - python setup.py install
 
 script:
     - pytest .
