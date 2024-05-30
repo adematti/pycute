@@ -1,39 +1,115 @@
 import os
 import sys
+import sysconfig
+import subprocess
+import shutil
+from distutils.command.build import build
+from distutils.command.clean import clean
+from setuptools.command.bdist_egg import bdist_egg
+from setuptools.command.develop import develop
 from setuptools import setup
-from setuptools.command.install import install
-from distutils.command.build import build as _build
-from setuptools.command.bdist_egg import bdist_egg as _bdist_egg
-from subprocess import call
 
-setup_keywords = dict()
-setup_keywords['name'] = 'pycute'
-setup_keywords['description'] = 'Correlation utility'
-setup_keywords['author'] = 'Arnaud de Mattia'
-setup_keywords['author_email'] = ''
-setup_keywords['license'] = 'GPL3'
-setup_keywords['url'] = 'https://github.com/adematti/pycute'
-sys.path.insert(0,os.path.abspath('pycute/'))
-import version
-setup_keywords['version'] = version.__version__
-setup_keywords['install_requires'] = ['numpy']
-setup_keywords['packages'] = ['pycute']
-setup_keywords['package_dir'] = {'pycute':'pycute'}
 
-class build(_build):
+# base directory of package
+package_basedir = os.path.abspath(os.path.dirname(__file__))
+package_basename = 'pycute'
+
+
+sys.path.insert(0, os.path.join(package_basedir, package_basename))
+import _version
+import utils
+version = _version.__version__
+lib_dir = utils.lib_dir
+src_dir = os.path.join(package_basedir, 'src')
+
+
+def find_compiler():
+    compiler = os.getenv('CC', None)
+    if compiler is None:
+        compiler = sysconfig.get_config_vars().get('CC', None)
+    import platform
+    uname = platform.uname().system
+    if compiler is None:
+        compiler = 'gcc'
+        if uname == 'Darwin': compiler = 'clang'
+    return compiler
+
+
+def compiler_is_clang(compiler):
+    if compiler == 'clang':
+        return True
+    from subprocess import Popen, PIPE
+    proc = Popen([compiler, '--version'], universal_newlines=True, stdout=PIPE, stderr=PIPE, shell=True)
+    out, err = proc.communicate()
+    if 'clang' in out:
+        return True
+    return False
+
+
+class custom_build(build):
 
     def run(self):
-        super(build,self).run()
-        def compile():
-            call('make')
-        self.execute(compile,[],'Compiling pycute')
-        self.move_file('pycute/cute.so',os.path.join(self.build_lib,'pycute'))
+        super(custom_build, self).run()
 
-class bdist_egg(_bdist_egg):
+        os.environ.setdefault('LIBDIR', lib_dir)
+        library_dir = sysconfig.get_config_var('LIBDIR')
+
+        compiler = find_compiler()
+        os.environ.setdefault('CC', compiler)
+        if compiler_is_clang(compiler):
+            flags = '-Xclang -fopenmp -L{} -lomp'.format(library_dir)
+        elif compiler in ['cc', 'icc']:
+            flags = '-fopenmp -L{} -lgomp -limf -liomp5'.format(library_dir)
+        else:
+            flags = '-fopenmp -L{} -lgomp'.format(library_dir)
+        os.environ.setdefault('OMPFLAG', flags)
+
+        def compile():
+            subprocess.call('make', shell=True, cwd=src_dir)
+
+        self.execute(compile, [], 'Compiling')
+        new_lib_dir = os.path.join(os.path.abspath(self.build_lib), package_basename, 'lib')
+        shutil.rmtree(new_lib_dir, ignore_errors=True)
+        shutil.copytree(lib_dir, new_lib_dir)
+
+
+class custom_bdist_egg(bdist_egg):
+
     def run(self):
         self.run_command('build')
-        _bdist_egg.run(self)
+        super(custom_bdist_egg, self).run()
 
-setup_keywords['cmdclass'] = {'build':build,'bdist_egg':bdist_egg}
 
-setup(**setup_keywords)
+class custom_develop(develop):
+
+    def run(self):
+        self.run_command('build')
+        super(custom_develop, self).run()
+
+
+class custom_clean(clean):
+
+    def run(self):
+        # run the built-in clean
+        super(custom_clean, self).run()
+        # remove the recon products
+        shutil.rmtree(lib_dir, ignore_errors=True)
+        subprocess.call('make clean', shell=True, cwd=src_dir)
+
+
+if __name__ == '__main__':
+
+    setup(name=package_basename,
+          version=version,
+          author='Arnaud de Mattia',
+          author_email='',
+          description='Correlation utility',
+          license='GPLv3',
+          url='http://github.com/adematti/pycute',
+          install_requires=['numpy', 'scipy'],
+          extras_require={},
+          cmdclass={'build': custom_build,
+                    'develop': custom_develop,
+                    'bdist_egg': custom_bdist_egg,
+                    'clean': custom_clean},
+          packages=[package_basename])

@@ -4,6 +4,8 @@ import ctypes
 import numpy as np
 from numpy import ctypeslib
 
+from . import utils
+
 
 def wrap_phi(phi):
     mask = phi<0.
@@ -23,7 +25,7 @@ def celestial_to_spherical(pos,degree=True):
 class PyCute(object):
 
     C_TYPE = ctypes.c_double
-    PATH_CUTE = os.path.join(os.path.dirname(os.path.realpath(__file__)),'cute.so')
+    PATH_CUTE = os.path.join(utils.lib_dir,'cute.so')
 
     def __init__(self):
 

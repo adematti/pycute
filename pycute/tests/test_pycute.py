@@ -286,6 +286,7 @@ def test_3pcf_multi():
     assert np.isnan(pycute.counts).sum() == 0
     assert np.any(pycute.counts)
 
+
 def test_3pcf_multi_double_los():
     position1,weight1,position2,weight2 = load_catalogues()
     pycute = PyCute()

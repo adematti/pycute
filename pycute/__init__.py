@@ -1,3 +1,3 @@
-__all__ = ['pycute','PyCute']
+__all__ = ['pycute', 'PyCute']
 
 from .pycute import PyCute
